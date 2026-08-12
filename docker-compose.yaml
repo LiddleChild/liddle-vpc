@@ -1,0 +1,19 @@
+networks:
+  default:
+    name: portainer_net
+
+volumes:
+  portainer_data:
+    name: portainer_data
+
+services:
+  portainer:
+    container_name: portainer
+    image: portainer/portainer-ce:lts
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    ports:
+      - 127.0.0.1:9000:9000
+
