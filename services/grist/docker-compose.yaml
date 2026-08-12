@@ -1,0 +1,26 @@
+networks:
+  default:
+    name: grist_net
+
+volumes:
+  grist_data:
+    name: grist_data
+
+services:
+  redis:
+    image: redis:8-alpine
+    container_name: redis
+
+  grist:
+    image: gristlabs/grist:latest
+    container_name: grist
+    restart: unless-stopped
+    environment:
+      REDIS_URL: redis://redis
+    ports:
+      - "127.0.0.1:8484:8484"
+    volumes:
+      - grist_data:/persist
+    depends_on:
+      - redis
+
