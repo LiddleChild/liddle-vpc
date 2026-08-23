@@ -1,19 +1,36 @@
 networks:
+  # used by all services in this compose file
   default:
-    name: portainer_net
+    name: shared
 
 volumes:
   portainer_data:
     name: portainer_data
 
+  tailscale_data:
+    name: tailscale_data
+
 services:
-  portainer:
+  portainer: # port 9000
     container_name: portainer
     image: portainer/portainer-ce:lts
     restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
-    ports:
-      - 127.0.0.1:9000:9000
+
+  tailscale:
+    container_name: tailscale
+    image: tailscale/tailscale:latest
+    hostname: oci-liddle-vpc
+    env_file:
+      - ./.env
+    environment:
+      - TS_STATE_DIR=/var/lib/tailscale
+    volumes:
+      - tailscale_data:/var/lib/tailscale
+    cap_add:
+      - net_admin
+      - net_raw
+    restart: always
 

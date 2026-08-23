@@ -3,26 +3,28 @@
 My personal VPC. The whole VPC is hosted on Oracle Cloud Infrastructure.
 Services are exposed through Tailscale Services. Services are hosted with docker and are managed through Portainer.
 
+# Setup
+
+Firstly, apply `docker-compose.yaml` to start up core services.
+
 ## Tailscale
 
-Installation guide from tailscale [https://pkgs.tailscale.com/stable/#oracle-9]
+Advertise services behind tailscale network. Hosted in container [https://tailscale.com/docs/features/containers/docker/how-to/connect-docker-container]
 
-```bash
-sudo tailscale up --auth-key=<tskey-client-key> --advertise-tags=tag:<tag>
-```
-
-Serving new service
+To serve new service
 
 ```bash
 # Start serving service
-tailscale serve --service=svc:<service-name> --https=443 <port>
+tailscale serve --service=svc:<service-name> <url>
 
 # Stop serving
 tailscale serve --service=svc:<service-name> off
 ```
 
-## Services
+## Portainer
 
-- Portainer
+Manage containers in web ui
+
+# Services
 - Grist
 
