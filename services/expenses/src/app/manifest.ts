@@ -4,7 +4,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Expenses',
     short_name: 'Expenses',
-    description: 'Track your outstanding monthly budget.',
+    description: 'View current monthly expenses across all accounts.',
     start_url: '/',
     display: 'standalone',
     background_color: '#ffffff',

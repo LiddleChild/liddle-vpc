@@ -1,7 +1,39 @@
+"use client"
+
+import { useMemo, useRef, useState } from "react"
+import dayjs from "dayjs"
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, RefreshCw } from "lucide-react"
+import { ExpenseFilters, type ExpenseFilters as ExpenseFiltersValue } from "@/components/expense-filters"
+
+type Account = { name: string; color: string; amount: number; category: string; tags: string[] }
+const accounts: Account[] = [
+  { name: "Daily spending", color: "#e9a34d", amount: 428.35, category: "Everyday", tags: ["Needs", "Card"] },
+  { name: "Home & bills", color: "#8c80e7", amount: 1360, category: "Bills", tags: ["Needs", "Recurring"] },
+  { name: "Shared expenses", color: "#75b9a8", amount: 225.9, category: "Everyday", tags: ["Shared"] },
+  { name: "Cash & other", color: "#de7d6d", amount: 86.2, category: "Other", tags: ["Cash"] },
+]
+const formatMoney = (value: number) => new Intl.NumberFormat("th-TH", { style: "currency", currency: "THB", maximumFractionDigits: 2 }).format(value)
+
 export default function Home() {
+  const [monthOffset, setMonthOffset] = useState(0)
+  const [showFilters, setShowFilters] = useState(false)
+  const screenViewport = useRef<HTMLDivElement>(null)
+  const [filters, setFilters] = useState<ExpenseFiltersValue>({ accounts: accounts.map((account) => account.name), category: "all", tags: [] })
+  const month = useMemo(() => dayjs("2025-09-01").add(monthOffset, "month").format("MMMM YYYY"), [monthOffset])
+  const visibleAccounts = accounts.filter((account) => filters.accounts.includes(account.name) && (filters.category === "all" || account.category === filters.category) && filters.tags.every((tag) => account.tags.includes(tag)))
+  const totalExpenses = visibleAccounts.reduce((sum, account) => sum + account.amount, 0)
+  const categories = [...new Set(accounts.map((account) => account.category))]
+  const tags = [...new Set(accounts.flatMap((account) => account.tags))]
+
+  const handleScroll = () => { const viewport = screenViewport.current; if (viewport) setShowFilters(viewport.scrollLeft > viewport.clientWidth / 2) }
+  const closeFilters = () => { setShowFilters(false); screenViewport.current?.scrollTo({ left: 0, behavior: "smooth" }) }
+
   return (
-    <main className="flex min-h-svh items-center justify-center p-6">
-      <h1 className="text-3xl font-semibold tracking-tight">Expenses</h1>
-    </main>
+    <main className="app-shell"><div className="ambient-shape ambient-shape-one" /><div className="ambient-shape ambient-shape-two" /><div className="screen-viewport" ref={screenViewport} onScroll={handleScroll}><div className="page-track"><div className="page-screen"><div className="dashboard">
+      <div className="month-picker" aria-label="Choose month"><button className="month-arrow" onClick={() => setMonthOffset((value) => value - 1)} aria-label="Previous month"><ChevronLeft size={18} /></button><div className="month-label"><CalendarDays size={16} /><span>{month}</span><ChevronDown size={15} /></div><button className="month-arrow" onClick={() => setMonthOffset((value) => value + 1)} aria-label="Next month"><ChevronRight size={18} /></button></div>
+      <section className="hero-card"><div className="hero-topline"><span>Expenses this month</span></div><p className="hero-amount">{formatMoney(totalExpenses)}</p><div className="hero-footer"><span><RefreshCw size={13} /> Updated 8 min ago</span></div></section>
+      <section className="section-heading"><h2>Accounts</h2></section>
+      <section className="accounts-card">{visibleAccounts.length > 0 ? visibleAccounts.map((account, index) => <div className="account-row" key={account.name}><span className="account-color" style={{ backgroundColor: account.color }} /><span className="account-copy"><strong>{account.name}</strong></span><span className="account-amount">{formatMoney(account.amount)}</span>{index < visibleAccounts.length - 1 && <span className="row-divider" />}</div>) : <p className="empty-state">No accounts match these filters.</p>}</section>
+    </div></div><div className="page-screen"><ExpenseFilters accountNames={accounts.map((account) => account.name)} categories={categories} tags={tags} value={filters} onApply={setFilters} onClose={closeFilters} /></div></div></div><div className="page-dots" role="status" aria-label={`Page ${showFilters ? 2 : 1} of 2`}><span className={!showFilters ? "active" : ""} /><span className={showFilters ? "active" : ""} /></div></main>
   )
 }

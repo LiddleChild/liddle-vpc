@@ -3,7 +3,8 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Expenses",
-  description: "Track your outstanding monthly budget.",
+  description: "View current monthly expenses across all accounts.",
+  appleWebApp: { capable: true, title: "Expenses", statusBarStyle: "black-translucent" },
 };
 
 export const viewport = {

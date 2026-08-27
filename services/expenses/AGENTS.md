@@ -4,16 +4,15 @@
 
 Expenses is a mobile-first PWA optimized for modern iOS Safari. It consumes private Grist data and answers one question quickly:
 
-> How much of my budget is still outstanding this month?
+> How much have I spent across all of my accounts this month?
 
 Prioritize glanceability, minimal interaction, clear financial states, and accessible mobile presentation.
 
 The initial dashboard should focus on:
 
-- Outstanding amount as the dominant visual.
+- Current expenses as the dominant visual.
 - Selected month.
-- Monthly budget.
-- Committed spending.
+- Total expenses across included accounts.
 - Last successful sync time.
 - Account-name filtering with toggle controls so users can include or exclude accounts from the summary.
 
@@ -33,6 +32,8 @@ Expense entry, editing, category analytics, and complex charts are out of scope 
 - Use shadcn/ui components and Tailwind CSS for interface primitives and styling.
 - Prefer small typed modules and pure calculation functions.
 - Do not add dependencies without a concrete need.
+- Use `dayjs` for date and time parsing, calculations, and formatting throughout the project.
+- This is a view-only app: it must not create, edit, delete, or otherwise mutate expense or account data. Local display filters and month navigation are allowed.
 
 The current application is a minimal starter. The Grist route-handler boundary should support a mock/provider implementation before live credentials are available.
 
@@ -41,9 +42,9 @@ The current application is a minimal starter. The Grist route-handler boundary s
 The Grist adapter should map upstream records into these application-level shapes:
 
 ```ts
-type BudgetRecord = {
+type ExpenseSourceRecord = {
   month: string // YYYY-MM
-  amount: number
+  amount: number // total expenses from this source for the month
   currency: string
 }
 
@@ -55,11 +56,11 @@ type ExpenseRecord = {
   excluded?: boolean
 }
 
-type MonthlyBudgetSummary = {
+type MonthlyExpenseSummary = {
   month: string
-  budget: number
-  committed: number
-  outstanding: number
+  expenses: number
+  transactionCount: number
+  accountCount: number
   currency: string
   syncedAt: string
 }
@@ -73,26 +74,24 @@ The route handler at `app/api/monthly-summary/route.ts` must:
 
 - Accept only the `month=YYYY-MM` query parameter.
 - Validate the month format before querying a provider.
-- Return a typed `MonthlyBudgetSummary` response when data is available.
+- Return a typed `MonthlyExpenseSummary` response when data is available.
 - Return safe, generic error responses without exposing Grist details or credentials.
 - Remain read-only.
 - Keep the provider mockable so the UI and calculation logic do not require a live Grist document during development.
 
 Do not put Grist API keys in `NEXT_PUBLIC_*` variables or any other browser-exposed configuration.
 
-## Budget calculation
+## Expense aggregation
 
 Use the configured/local user timezone for month boundaries.
 
 ```text
-committed = approved expenses + pending expenses - refunds/adjustments
-outstanding = budget - committed
+expenses = approved expenses + pending expenses - refunds/adjustments
 ```
 
 - Canceled and rejected expenses are excluded.
 - Explicitly excluded records are excluded.
-- Refunds and adjustments reduce committed spending.
-- Do not clamp negative outstanding values. Show them as overspent.
+- Refunds and adjustments reduce the displayed expense total.
 - Preserve the source currency and format amounts consistently.
 - Treat missing, malformed, or contradictory financial values as data errors rather than silently inventing values.
 
@@ -108,7 +107,7 @@ outstanding = budget - committed
 - Do not rely on hover interactions.
 - Allow users to filter accounts by name using accessible toggle controls; make active and inactive states clear, support keyboard and touch interaction, and update the displayed summary when account filters change.
 - Respect `prefers-reduced-motion`.
-- Keep the first screen focused on the selected month and its outstanding amount.
+- Keep the first screen focused on the selected month and its current expense total.
 - Show explicit loading, empty-month, API failure, malformed-data, offline/connectivity, stale-data, and overspending states.
 - Offline editing and offline snapshots are not supported. When the API cannot be reached, explain that connectivity is required.
 - Do not add offline caching or service-worker behavior unless the offline policy is explicitly expanded.
@@ -137,15 +136,15 @@ Use Next.js App Router conventions and preserve server/client boundaries. Run li
 
 ## Testing requirements
 
-Add tests for pure budget logic covering:
+Add tests for pure expense aggregation logic covering:
 
-- Approved and pending expenses being committed.
+- Approved and pending expenses being aggregated.
 - Canceled and rejected expenses being excluded.
 - Explicit exclusions.
 - Refunds and adjustments.
 - Month boundaries and configured timezone behavior.
-- Exact zero remaining budget.
-- Negative outstanding values and overspending presentation.
+- Exact zero expense totals.
+- Refunds and adjustments reducing the expense total.
 - Empty and malformed API responses.
 - Invalid and missing `month` query parameters.
 - Safe route-handler errors without credential or upstream-detail leakage.
