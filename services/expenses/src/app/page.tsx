@@ -14,6 +14,7 @@ import {
   ExpenseFilters,
   type ExpenseFilters as ExpenseFiltersValue,
 } from "@/components/expense-filters";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   getExpensesSummary,
   listAccounts,
@@ -131,12 +132,16 @@ export default function Home() {
         <div className="page-track">
           <div className="page-screen">
             <div className="dashboard">
-              <section className="expense-hero" aria-label="Current expenses">
+              <section
+                className="expense-hero"
+                aria-label="Current expenses"
+                aria-busy={isSummaryLoading}
+              >
                 <div className="expense-circle">
                   <span>Expenses</span>
                   <strong aria-live="polite">
                     {isSummaryLoading
-                      ? "…"
+                      ? <Skeleton className="expense-amount-skeleton" />
                       : summaryError
                         ? "—"
                         : formatMoney(summary?.expenses ?? 0, summary?.currency ?? "THB")}
@@ -145,7 +150,12 @@ export default function Home() {
                 </div>
                 <div className="sync-line">
                   <RefreshCw size={13} />
-                  {summaryError
+                  {isSummaryLoading ? (
+                    <>
+                      <span className="sr-only">Loading expenses</span>
+                      <Skeleton className="sync-skeleton" />
+                    </>
+                  ) : summaryError
                     ? "Unable to load expenses"
                     : summary
                       ? `Updated ${dayjs(summary.syncedAt).format("h:mm A")}`
