@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dayjs from "dayjs";
 import {
   CalendarDays,
@@ -8,6 +8,7 @@ import {
   ChevronLeft,
   ChevronRight,
   RefreshCw,
+  WifiOff,
 } from "lucide-react";
 import {
   ExpenseFilters,
@@ -61,6 +62,7 @@ const formatMoney = (value: number) =>
 export default function Home() {
   const [monthOffset, setMonthOffset] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
   const screenViewport = useRef<HTMLDivElement>(null);
   const [filters, setFilters] = useState<ExpenseFiltersValue>({
     accounts: accounts.map((account) => account.name),
@@ -84,12 +86,26 @@ export default function Home() {
   const categories = [...new Set(accounts.map((account) => account.category))];
   const tags = [...new Set(accounts.flatMap((account) => account.tags))];
 
+  useEffect(() => {
+    const updateConnection = () => setIsOffline(!navigator.onLine);
+    updateConnection();
+    window.addEventListener("online", updateConnection);
+    window.addEventListener("offline", updateConnection);
+    if (screenViewport.current) screenViewport.current.scrollLeft = 0;
+    return () => {
+      window.removeEventListener("online", updateConnection);
+      window.removeEventListener("offline", updateConnection);
+    };
+  }, []);
+
   const handleScroll = () => {
     const viewport = screenViewport.current;
     if (viewport)
       setShowFilters(viewport.scrollLeft > viewport.clientWidth / 2);
   };
-  return (
+  return isOffline ? (
+    <main className="connection-state"><div className="connection-icon"><WifiOff size={26} /></div><h1>Can’t connect</h1><p>Connect to the internet to view your current expenses.</p><button onClick={() => window.location.reload()}>Try again</button></main>
+  ) : (
     <main className="app-shell">
       <div className="ambient-shape ambient-shape-one" />
       <div className="ambient-shape ambient-shape-two" />
