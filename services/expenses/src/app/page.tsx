@@ -14,48 +14,18 @@ import {
   ExpenseFilters,
   type ExpenseFilters as ExpenseFiltersValue,
 } from "@/components/expense-filters";
+import {
+  getExpensesSummary,
+  listAccounts,
+  listCategories,
+  listTags,
+} from "@/app/actions/catalog";
+import type { MonthlyExpenseSummary } from "@/lib/server/catalog";
 
-type Account = {
-  name: string;
-  color: string;
-  amount: number;
-  category: string;
-  tags: string[];
-};
-const accounts: Account[] = [
-  {
-    name: "Daily spending",
-    color: "#e9a34d",
-    amount: 428.35,
-    category: "Everyday",
-    tags: ["Needs", "Card"],
-  },
-  {
-    name: "Home & bills",
-    color: "#8c80e7",
-    amount: 1360,
-    category: "Bills",
-    tags: ["Needs", "Recurring"],
-  },
-  {
-    name: "Shared expenses",
-    color: "#75b9a8",
-    amount: 225.9,
-    category: "Everyday",
-    tags: ["Shared"],
-  },
-  {
-    name: "Cash & other",
-    color: "#de7d6d",
-    amount: 86.2,
-    category: "Other",
-    tags: ["Cash"],
-  },
-];
-const formatMoney = (value: number) =>
+const formatMoney = (value: number, currency: string) =>
   new Intl.NumberFormat("th-TH", {
     style: "currency",
-    currency: "THB",
+    currency,
     maximumFractionDigits: 2,
   }).format(value);
 
@@ -63,29 +33,23 @@ export default function Home() {
   const [monthOffset, setMonthOffset] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
+  const [accountNames, setAccountNames] = useState<string[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [tags, setTags] = useState<string[]>([]);
+  const [summary, setSummary] = useState<MonthlyExpenseSummary | null>(null);
+  const [summaryError, setSummaryError] = useState(false);
+  const [isSummaryLoading, setIsSummaryLoading] = useState(true);
   const screenViewport = useRef<HTMLDivElement>(null);
   const [filters, setFilters] = useState<ExpenseFiltersValue>({
-    accounts: accounts.map((account) => account.name),
+    accounts: [],
     category: "all",
     tags: [],
   });
-  const month = useMemo(
-    () => dayjs("2025-09-01").add(monthOffset, "month").format("MMMM YYYY"),
+  const selectedMonth = useMemo(
+    () => dayjs("2025-09-01").add(monthOffset, "month").format("YYYY-MM"),
     [monthOffset],
   );
-  const visibleAccounts = accounts.filter(
-    (account) =>
-      filters.accounts.includes(account.name) &&
-      (filters.category === "all" || account.category === filters.category) &&
-      filters.tags.every((tag) => account.tags.includes(tag)),
-  );
-  const totalExpenses = visibleAccounts.reduce(
-    (sum, account) => sum + account.amount,
-    0,
-  );
-  const categories = [...new Set(accounts.map((account) => account.category))];
-  const tags = [...new Set(accounts.flatMap((account) => account.tags))];
-
+  const month = dayjs(`${selectedMonth}-01`).format("MMMM YYYY");
   useEffect(() => {
     const updateConnection = () => setIsOffline(!navigator.onLine);
     updateConnection();
@@ -95,6 +59,56 @@ export default function Home() {
     return () => {
       window.removeEventListener("online", updateConnection);
       window.removeEventListener("offline", updateConnection);
+    };
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    void (async () => {
+      await Promise.resolve();
+      if (!isMounted) return;
+
+      setIsSummaryLoading(true);
+      setSummaryError(false);
+
+      try {
+        const nextSummary = await getExpensesSummary({
+          month: selectedMonth,
+          ...filters,
+        });
+        if (!isMounted) return;
+        setSummary(nextSummary);
+        setIsSummaryLoading(false);
+      } catch {
+        if (!isMounted) return;
+        setSummaryError(true);
+        setIsSummaryLoading(false);
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [filters, selectedMonth]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    Promise.all([listCategories(), listTags(), listAccounts()]).then(
+      ([nextCategories, nextTags, nextAccounts]) => {
+        if (!isMounted) return;
+
+        const nextAccountNames = nextAccounts.map((account) => account.name);
+        setCategories(nextCategories);
+        setTags(nextTags);
+        setAccountNames(nextAccountNames);
+        setFilters((current) => ({ ...current, accounts: nextAccountNames }));
+      },
+    );
+
+    return () => {
+      isMounted = false;
     };
   }, []);
 
@@ -120,11 +134,22 @@ export default function Home() {
               <section className="expense-hero" aria-label="Current expenses">
                 <div className="expense-circle">
                   <span>Expenses</span>
-                  <strong>{formatMoney(totalExpenses)}</strong>
+                  <strong aria-live="polite">
+                    {isSummaryLoading
+                      ? "…"
+                      : summaryError
+                        ? "—"
+                        : formatMoney(summary?.expenses ?? 0, summary?.currency ?? "THB")}
+                  </strong>
                   <small>this month</small>
                 </div>
                 <div className="sync-line">
-                  <RefreshCw size={13} /> Updated 8 min ago
+                  <RefreshCw size={13} />
+                  {summaryError
+                    ? "Unable to load expenses"
+                    : summary
+                      ? `Updated ${dayjs(summary.syncedAt).format("h:mm A")}`
+                      : "Loading expenses"}
                 </div>
               </section>
               <div className="month-picker" aria-label="Choose month">
@@ -152,7 +177,8 @@ export default function Home() {
           </div>
           <div className="page-screen">
             <ExpenseFilters
-              accountNames={accounts.map((account) => account.name)}
+              key={accountNames.join("|")}
+              accountNames={accountNames}
               categories={categories}
               tags={tags}
               value={filters}
