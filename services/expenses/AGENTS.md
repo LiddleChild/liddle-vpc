@@ -108,6 +108,11 @@ expenses = approved expenses + pending expenses - refunds/adjustments
 - Allow users to filter accounts by name using accessible toggle controls; make active and inactive states clear, support keyboard and touch interaction, and update the displayed summary when account filters change.
 - Respect `prefers-reduced-motion`.
 - Keep the first screen focused on the selected month and its current expense total.
+- Keep the first screen minimal: show the current expense total and month picker, without account or expense breakdowns.
+- Open Settings by swiping left using horizontal CSS scroll snap; swipe right to return to the main page. Do not add a filter button.
+- Settings filters apply immediately. Category is single-select; tags and accounts are multi-select. Use a compact “Clear all” action in the top-right.
+- Support both portrait and landscape layouts. Do not force orientation or show an orientation-rotation prompt.
+- Do not reset the selected page on `pagehide`; preserve normal browser/PWA page lifecycle behavior.
 - Show explicit loading, empty-month, API failure, malformed-data, offline/connectivity, stale-data, and overspending states.
 - Offline editing and offline snapshots are not supported. When the API cannot be reached, explain that connectivity is required.
 - Do not add offline caching or service-worker behavior unless the offline policy is explicitly expanded.
