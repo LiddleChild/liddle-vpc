@@ -17,9 +17,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   getExpensesSummary,
-  listAccounts,
-  listCategories,
-  listTags,
+  listCatalog,
 } from "@/app/actions/catalog";
 import type { MonthlyExpenseSummary } from "@/lib/server/catalog";
 
@@ -96,17 +94,15 @@ export default function Home() {
   useEffect(() => {
     let isMounted = true;
 
-    Promise.all([listCategories(), listTags(), listAccounts()]).then(
-      ([nextCategories, nextTags, nextAccounts]) => {
-        if (!isMounted) return;
+    listCatalog().then((catalog) => {
+      if (!isMounted) return;
 
-        const nextAccountNames = nextAccounts.map((account) => account.name);
-        setCategories(nextCategories);
-        setTags(nextTags);
-        setAccountNames(nextAccountNames);
-        setFilters((current) => ({ ...current, accounts: nextAccountNames }));
-      },
-    );
+      const nextAccountNames = catalog.accounts.map((account) => account.name);
+      setCategories(catalog.categories);
+      setTags(catalog.tags);
+      setAccountNames(nextAccountNames);
+      setFilters((current) => ({ ...current, accounts: nextAccountNames }));
+    });
 
     return () => {
       isMounted = false;

@@ -1,3 +1,5 @@
+import { GristClient, type GristColumn } from "@/lib/server/grist-client";
+
 export type Account = {
   id: string;
   name: string;
@@ -35,20 +37,55 @@ type MockExpense = {
   currency: string;
 };
 
-/**
- * The provider boundary keeps the eventual Grist table and column names out
- * of the application. Replace this implementation with the Grist adapter
- * when the private document is configured.
- */
-const mockCatalog: ExpenseCatalog = {
-  categories: ["Everyday", "Bills", "Other"],
-  tags: ["Needs", "Card", "Recurring", "Shared", "Cash"],
-  accounts: [
-    { id: "daily-spending", name: "Daily spending" },
-    { id: "home-bills", name: "Home & bills" },
-    { id: "shared-expenses", name: "Shared expenses" },
-    { id: "cash-other", name: "Cash & other" },
-  ],
+const mockAccounts: Account[] = [
+  { id: "daily-spending", name: "Daily spending" },
+  { id: "home-bills", name: "Home & bills" },
+  { id: "shared-expenses", name: "Shared expenses" },
+  { id: "cash-other", name: "Cash & other" },
+];
+
+const getGristClient = () =>
+  new GristClient({
+    baseUrl: process.env.GRIST_URL ?? "",
+    docId: process.env.GRIST_DOC_ID ?? "",
+    apiKey: process.env.GRIST_API_KEY ?? "",
+  });
+
+const getChoiceValues = (column: GristColumn): string[] => {
+  if (!column.fields.widgetOptions) {
+    throw new Error(`Column ${column.id} has no choice options`);
+  }
+
+  let widgetOptions: unknown;
+  try {
+    widgetOptions = JSON.parse(column.fields.widgetOptions);
+  } catch {
+    throw new Error(`Column ${column.id} has invalid choice options`);
+  }
+
+  if (
+    typeof widgetOptions !== "object" ||
+    widgetOptions === null ||
+    !Array.isArray((widgetOptions as { choices?: unknown }).choices) ||
+    !(widgetOptions as { choices: unknown[] }).choices.every(
+      (choice) => typeof choice === "string",
+    )
+  ) {
+    throw new Error(`Column ${column.id} has invalid choice options`);
+  }
+
+  return (widgetOptions as { choices: string[] }).choices;
+};
+
+const getColumn = (columns: GristColumn[], columnId: string) => {
+  const column = columns.find(
+    (candidate) =>
+      candidate.id === columnId || candidate.fields.label === columnId,
+  );
+  if (!column) {
+    throw new Error(`Column ${columnId} was not found`);
+  }
+  return column;
 };
 
 const mockExpenses: MockExpense[] = [
@@ -91,8 +128,16 @@ const mockExpenses: MockExpense[] = [
 ];
 
 export async function getExpenseCatalog(): Promise<ExpenseCatalog> {
-  // Keep this asynchronous so the mock and live providers share the same API.
-  return mockCatalog;
+  const client = getGristClient();
+  const columns = await client.listTableColumns(
+    process.env.GRIST_TRANSACTIONS_TABLE ?? "Transactions",
+  );
+
+  return {
+    categories: getChoiceValues(getColumn(columns, "Category")),
+    tags: getChoiceValues(getColumn(columns, "Tags")),
+    accounts: mockAccounts,
+  };
 }
 
 export async function getMonthlyExpenseSummary(

@@ -3,25 +3,14 @@
 import {
   getExpenseCatalog,
   getMonthlyExpenseSummary,
-  type Account,
+  type ExpenseCatalog,
   type MonthlyExpenseSummary,
   type ExpenseSummaryFilters,
 } from "@/lib/server/catalog";
 import dayjs from "dayjs";
 
-export async function listCategories(): Promise<string[]> {
-  const catalog = await getExpenseCatalog();
-  return catalog.categories;
-}
-
-export async function listTags(): Promise<string[]> {
-  const catalog = await getExpenseCatalog();
-  return catalog.tags;
-}
-
-export async function listAccounts(): Promise<Account[]> {
-  const catalog = await getExpenseCatalog();
-  return catalog.accounts;
+export async function listCatalog(): Promise<ExpenseCatalog> {
+  return getExpenseCatalog();
 }
 
 export async function getExpensesSummary(
