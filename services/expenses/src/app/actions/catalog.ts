@@ -3,10 +3,12 @@
 import {
   getExpenseCatalog,
   getMonthlyExpenseSummary,
-  type ExpenseCatalog,
-  type MonthlyExpenseSummary,
-  type ExpenseSummaryFilters,
 } from "@/lib/server/catalog";
+import type {
+  ExpenseCatalog,
+  ExpenseSummaryFilters,
+  MonthlyExpenseSummary,
+} from "@/lib/types/catalog";
 import dayjs from "dayjs";
 
 export async function listCatalog(): Promise<ExpenseCatalog> {

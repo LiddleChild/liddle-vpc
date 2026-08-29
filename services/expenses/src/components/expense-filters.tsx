@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { RotateCcw } from "lucide-react"
-import type { CatalogChoice } from "@/lib/server/catalog"
+import type { CatalogChoice } from "@/lib/types/catalog"
 
 export type ExpenseFilters = {
   accounts: string[]

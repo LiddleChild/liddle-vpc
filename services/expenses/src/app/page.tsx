@@ -19,7 +19,10 @@ import {
   getExpensesSummary,
   listCatalog,
 } from "@/app/actions/catalog";
-import type { CatalogChoice, MonthlyExpenseSummary } from "@/lib/server/catalog";
+import type {
+  CatalogChoice,
+  MonthlyExpenseSummary,
+} from "@/lib/types/catalog";
 
 const formatMoney = (value: number, currency: string) =>
   new Intl.NumberFormat("th-TH", {
