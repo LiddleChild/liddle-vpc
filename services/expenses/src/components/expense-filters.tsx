@@ -26,7 +26,7 @@ export function ExpenseFilters({ accountNames, categories, tags, value, onApply 
     onApply(next)
   }
 
-  const reset = () => updateFilters({ accounts: accountNames, categories: [], tags: [] })
+  const reset = () => updateFilters({ accounts: accountNames, categories, tags })
 
   return <section className="filter-page" role="dialog" aria-modal="true">
         <div className="filter-settings-header"><h2>Settings</h2><button className="reset-button" onClick={reset}><RotateCcw size={14} /> Clear all</button></div>

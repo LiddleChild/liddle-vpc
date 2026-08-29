@@ -97,11 +97,16 @@ export default function Home() {
     listCatalog().then((catalog) => {
       if (!isMounted) return;
 
-      const nextAccountNames = catalog.accounts.map((account) => account.name);
-      setCategories(catalog.categories);
-      setTags(catalog.tags);
-      setAccountNames(nextAccountNames);
-      setFilters((current) => ({ ...current, accounts: nextAccountNames }));
+        const nextAccountNames = catalog.accounts.map((account) => account.name);
+        setCategories(catalog.categories);
+        setTags(catalog.tags);
+        setAccountNames(nextAccountNames);
+        setFilters((current) => ({
+          ...current,
+          accounts: nextAccountNames,
+          categories: catalog.categories,
+          tags: catalog.tags,
+        }));
     });
 
     return () => {
