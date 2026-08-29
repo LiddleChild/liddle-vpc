@@ -19,7 +19,7 @@ import {
   getExpensesSummary,
   listCatalog,
 } from "@/app/actions/catalog";
-import type { MonthlyExpenseSummary } from "@/lib/server/catalog";
+import type { CatalogChoice, MonthlyExpenseSummary } from "@/lib/server/catalog";
 
 const formatMoney = (value: number, currency: string) =>
   new Intl.NumberFormat("th-TH", {
@@ -33,8 +33,8 @@ export default function Home() {
   const [showFilters, setShowFilters] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
   const [accountNames, setAccountNames] = useState<string[]>([]);
-  const [categories, setCategories] = useState<string[]>([]);
-  const [tags, setTags] = useState<string[]>([]);
+  const [categories, setCategories] = useState<CatalogChoice[]>([]);
+  const [tags, setTags] = useState<CatalogChoice[]>([]);
   const [summary, setSummary] = useState<MonthlyExpenseSummary | null>(null);
   const [summaryError, setSummaryError] = useState(false);
   const [isSummaryLoading, setIsSummaryLoading] = useState(true);
@@ -104,8 +104,8 @@ export default function Home() {
         setFilters((current) => ({
           ...current,
           accounts: nextAccountNames,
-          categories: catalog.categories,
-          tags: catalog.tags,
+          categories: catalog.categories.map(({ value }) => value),
+          tags: catalog.tags.map(({ value }) => value),
         }));
     });
 

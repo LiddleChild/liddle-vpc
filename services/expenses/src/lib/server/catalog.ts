@@ -5,9 +5,15 @@ export type Account = {
   name: string;
 };
 
+export type CatalogChoice = {
+  value: string;
+  textColor?: string;
+  fillColor?: string;
+};
+
 export type ExpenseCatalog = {
-  categories: string[];
-  tags: string[];
+  categories: CatalogChoice[];
+  tags: CatalogChoice[];
   accounts: Account[];
 };
 
@@ -51,7 +57,7 @@ const getGristClient = () =>
     apiKey: process.env.GRIST_API_KEY ?? "",
   });
 
-const getChoiceValues = (column: GristColumn): string[] => {
+const getChoiceValues = (column: GristColumn): CatalogChoice[] => {
   if (!column.fields.widgetOptions) {
     throw new Error(`Column ${column.id} has no choice options`);
   }
@@ -63,18 +69,48 @@ const getChoiceValues = (column: GristColumn): string[] => {
     throw new Error(`Column ${column.id} has invalid choice options`);
   }
 
+  if (typeof widgetOptions !== "object" || widgetOptions === null) {
+    throw new Error(`Column ${column.id} has invalid choice options`);
+  }
+
+  const choices = (widgetOptions as { choices?: unknown }).choices;
+  const choiceOptions = (widgetOptions as { choiceOptions?: unknown })
+    .choiceOptions;
   if (
-    typeof widgetOptions !== "object" ||
-    widgetOptions === null ||
-    !Array.isArray((widgetOptions as { choices?: unknown }).choices) ||
-    !(widgetOptions as { choices: unknown[] }).choices.every(
-      (choice) => typeof choice === "string",
-    )
+    !Array.isArray(choices) ||
+    !choices.every((choice) => typeof choice === "string") ||
+    (choiceOptions !== undefined &&
+      (typeof choiceOptions !== "object" || choiceOptions === null))
   ) {
     throw new Error(`Column ${column.id} has invalid choice options`);
   }
 
-  return (widgetOptions as { choices: string[] }).choices;
+  return choices.map((choice) => {
+    const option = (choiceOptions as Record<string, unknown> | undefined)?.[
+      choice
+    ];
+    if (option === undefined) return { value: choice };
+    if (typeof option !== "object" || option === null) {
+      throw new Error(`Column ${column.id} has invalid choice styling`);
+    }
+
+    const { textColor, fillColor } = option as {
+      textColor?: unknown;
+      fillColor?: unknown;
+    };
+    if (
+      (textColor !== undefined && typeof textColor !== "string") ||
+      (fillColor !== undefined && typeof fillColor !== "string")
+    ) {
+      throw new Error(`Column ${column.id} has invalid choice styling`);
+    }
+
+    return {
+      value: choice,
+      ...(textColor === undefined ? {} : { textColor }),
+      ...(fillColor === undefined ? {} : { fillColor }),
+    };
+  });
 };
 
 const getColumn = (columns: GristColumn[], columnId: string) => {
