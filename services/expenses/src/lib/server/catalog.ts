@@ -43,13 +43,6 @@ type MockExpense = {
   currency: string;
 };
 
-const mockAccounts: Account[] = [
-  { id: "daily-spending", name: "Daily spending" },
-  { id: "home-bills", name: "Home & bills" },
-  { id: "shared-expenses", name: "Shared expenses" },
-  { id: "cash-other", name: "Cash & other" },
-];
-
 const getGristClient = () =>
   new GristClient({
     baseUrl: process.env.GRIST_URL ?? "",
@@ -165,14 +158,25 @@ const mockExpenses: MockExpense[] = [
 
 export async function getExpenseCatalog(): Promise<ExpenseCatalog> {
   const client = getGristClient();
-  const columns = await client.listTableColumns(
-    process.env.GRIST_TRANSACTIONS_TABLE ?? "Transactions",
-  );
+  const [columns, accountRecords] = await Promise.all([
+    client.listTableColumns(
+      process.env.GRIST_TRANSACTIONS_TABLE ?? "Transactions",
+    ),
+    client.listTableRecords("Accounts"),
+  ]);
+
+  const accounts = accountRecords.map((record) => {
+    const name = record.fields.Name;
+    if (typeof name !== "string" || !name.trim()) {
+      throw new Error("Accounts table contains a record without a valid Name");
+    }
+    return { id: String(record.id), name };
+  });
 
   return {
     categories: getChoiceValues(getColumn(columns, "Category")),
     tags: getChoiceValues(getColumn(columns, "Tags")),
-    accounts: mockAccounts,
+    accounts,
   };
 }
 
