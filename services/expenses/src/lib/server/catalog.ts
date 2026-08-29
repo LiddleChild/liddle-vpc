@@ -14,7 +14,7 @@ export type ExpenseCatalog = {
 export type ExpenseSummaryFilters = {
   month: string;
   accounts: string[];
-  category: string;
+  categories: string[];
   tags: string[];
 };
 
@@ -147,7 +147,8 @@ export async function getMonthlyExpenseSummary(
     (expense) =>
       expense.month === filters.month &&
       filters.accounts.includes(expense.account) &&
-      (filters.category === "all" || expense.category === filters.category) &&
+      (filters.categories.length === 0 ||
+        filters.categories.includes(expense.category)) &&
       filters.tags.every((tag) => expense.tags.includes(tag)),
   );
 

@@ -41,7 +41,7 @@ export default function Home() {
   const screenViewport = useRef<HTMLDivElement>(null);
   const [filters, setFilters] = useState<ExpenseFiltersValue>({
     accounts: [],
-    category: "all",
+    categories: [],
     tags: [],
   });
   const selectedMonth = useMemo(

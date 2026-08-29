@@ -5,7 +5,7 @@ import { Check, RotateCcw } from "lucide-react"
 
 export type ExpenseFilters = {
   accounts: string[]
-  category: string
+  categories: string[]
   tags: string[]
 }
 
@@ -26,12 +26,12 @@ export function ExpenseFilters({ accountNames, categories, tags, value, onApply 
     onApply(next)
   }
 
-  const reset = () => updateFilters({ accounts: accountNames, category: "all", tags: [] })
+  const reset = () => updateFilters({ accounts: accountNames, categories: [], tags: [] })
 
   return <section className="filter-page" role="dialog" aria-modal="true">
         <div className="filter-settings-header"><h2>Settings</h2><button className="reset-button" onClick={reset}><RotateCcw size={14} /> Clear all</button></div>
-        <div className="filter-section"><label className="filter-label" htmlFor="category">Category</label><select id="category" value={draft.category} onChange={(event) => updateFilters({ ...draft, category: event.target.value })}><option value="all">All categories</option>{categories.map((category) => <option value={category} key={category}>{category}</option>)}</select></div>
-        <div className="filter-section"><span className="filter-label">Tags</span><div className="tag-options">{tags.map((tag) => { const selected = draft.tags.includes(tag); return <button className={`tag-option ${selected ? "selected" : ""}`} key={tag} onClick={() => updateFilters({ ...draft, tags: toggle(draft.tags, tag) })} aria-pressed={selected}>{selected && <Check size={13} />}{tag}</button> })}</div></div>
         <div className="filter-section"><span className="filter-label">Accounts</span><div className="account-options">{accountNames.map((account) => { const selected = draft.accounts.includes(account); return <button className="filter-account" key={account} onClick={() => updateFilters({ ...draft, accounts: toggle(draft.accounts, account) })} aria-pressed={selected}><span className={`filter-checkbox ${selected ? "selected" : ""}`}>{selected && <Check size={12} strokeWidth={3} />}</span>{account}</button> })}</div></div>
+        <div className="filter-section"><span className="filter-label">Categories</span><div className="tag-options">{categories.map((category) => { const selected = draft.categories.includes(category); return <button className={`tag-option ${selected ? "selected" : ""}`} key={category} onClick={() => updateFilters({ ...draft, categories: toggle(draft.categories, category) })} aria-pressed={selected}>{selected && <Check size={13} />}{category}</button> })}</div></div>
+        <div className="filter-section"><span className="filter-label">Tags</span><div className="tag-options">{tags.map((tag) => { const selected = draft.tags.includes(tag); return <button className={`tag-option ${selected ? "selected" : ""}`} key={tag} onClick={() => updateFilters({ ...draft, tags: toggle(draft.tags, tag) })} aria-pressed={selected}>{selected && <Check size={13} />}{tag}</button> })}</div></div>
       </section>
 }
