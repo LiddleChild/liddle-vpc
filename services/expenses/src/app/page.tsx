@@ -7,6 +7,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ReceiptText,
   WifiOff,
 } from "lucide-react";
 import {
@@ -23,8 +24,11 @@ import type {
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat("th-TH", {
+    minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value);
+
+const ACCOUNT_COLORS = ["#82a87d", "#c18a6b", "#8a9bc1", "#b692bd", "#c19d61"];
 
 const FILTER_STORAGE_KEY = "expenses:selected-filters";
 
@@ -235,6 +239,52 @@ export default function Home() {
                   <ChevronRight size={18} />
                 </button>
               </div>
+              <section className="account-expenses" aria-labelledby="account-expenses-title">
+                <div className="account-expenses-heading">
+                  <div>
+                    <p className="account-expenses-kicker">Spending breakdown</p>
+                    <h2 id="account-expenses-title">By account</h2>
+                  </div>
+                  {!isSummaryLoading && !summaryError && summary && (
+                    <span>{summary.accountExpenses.length} included</span>
+                  )}
+                </div>
+                <div
+                  className={`account-expenses-card ${isSummaryLoading ? "is-loading" : ""}`}
+                  aria-busy={isSummaryLoading}
+                >
+                  {summary?.accountExpenses.length ? (
+                    summary.accountExpenses.map((account, index) => (
+                      <div className="account-expense-row" key={account.accountId}>
+                        <span
+                          className="account-expense-dot"
+                          style={{ backgroundColor: ACCOUNT_COLORS[index % ACCOUNT_COLORS.length] }}
+                          aria-hidden="true"
+                        />
+                        <span className="account-expense-name">{account.accountName}</span>
+                        <span
+                          className={`account-expense-amount ${
+                            account.expenses > 0
+                              ? "positive"
+                              : account.expenses < 0
+                                ? "negative"
+                                : "neutral"
+                          }`}
+                        >
+                          {formatMoney(account.expenses)}
+                        </span>
+                        <ReceiptText size={14} aria-hidden="true" />
+                      </div>
+                    ))
+                  ) : isSummaryLoading ? (
+                    <div className="account-expenses-loading">Loading account totals…</div>
+                  ) : summaryError ? (
+                    <p className="account-expenses-empty">Account totals are unavailable right now.</p>
+                  ) : (
+                    <p className="account-expenses-empty">No accounts are included for this view.</p>
+                  )}
+                </div>
+              </section>
             </div>
           </div>
           <div className="page-screen">

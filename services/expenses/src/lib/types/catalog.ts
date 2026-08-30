@@ -27,5 +27,13 @@ export type MonthlyExpenseSummary = {
   expenses: number;
   transactionCount: number;
   accountCount: number;
+  accountExpenses: AccountExpense[];
   syncedAt: string;
+};
+
+export type AccountExpense = {
+  accountId: number;
+  accountName: string;
+  expenses: number;
+  transactionCount: number;
 };

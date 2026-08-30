@@ -4,6 +4,7 @@ import type {
   Account,
   CatalogChoice,
   ExpenseCatalog,
+  AccountExpense,
   ExpenseSummaryFilters,
   MonthlyExpenseSummary,
 } from "@/lib/types/catalog";
@@ -121,17 +122,15 @@ export async function getMonthlyExpenseSummary(
   filters: ExpenseSummaryFilters,
 ): Promise<MonthlyExpenseSummary> {
   const client = getGristClient();
+  const accountRecordsPromise = getAccountRecords(client);
   const monthStart = dayjs(`${filters.month}-01`);
   const nextMonthStart = monthStart.add(1, "month");
   const transactionsTable = quoteIdentifier("Transactions");
   const sql = `
     SELECT
-      COALESCE(
-        SUM(t."Amount_In_Account_Currency" * t."Inflow_Direction"),
-        0
-      ) AS expenses,
-      COUNT(*) AS transactionCount,
-      COUNT(DISTINCT t."Account") AS accountCount
+      t."Account" AS accountId,
+      COALESCE(SUM(t."Amount_In_Account_Currency" * t."Inflow_Direction"), 0) AS expenses,
+      COUNT(*) AS transactionCount
     FROM ${transactionsTable} t
     WHERE t."Date" >= ?
       AND t."Date" < ?
@@ -149,34 +148,65 @@ export async function getMonthlyExpenseSummary(
           ON selected_tag.value = transaction_tag.value
         )
       )
+    GROUP BY t."Account"
   `;
 
-  const result = await client.runSql(sql, [
+  const [accountRecords, result] = await Promise.all([
+    accountRecordsPromise,
+    client.runSql(sql, [
     monthStart.unix(),
     nextMonthStart.unix(),
     JSON.stringify(filters.accounts),
     JSON.stringify(filters.categories),
     JSON.stringify(filters.tags),
+    ]),
   ]);
 
-  const fields = result[0]?.fields;
-  const expenses = fields?.expenses;
-  const transactionCount = fields?.transactionCount;
-  const accountCount = fields?.accountCount;
-  if (
-    typeof expenses !== "number" ||
-    !Number.isFinite(expenses) ||
-    typeof transactionCount !== "number" ||
-    typeof accountCount !== "number"
-  ) {
-    throw new Error("Grist returned invalid expense totals");
-  }
+  const groupedExpenses = result.map(({ fields }): AccountExpense => {
+    const accountId = fields.accountId;
+    const expenses = fields.expenses;
+    const transactionCount = fields.transactionCount;
+    if (
+      typeof accountId !== "number" ||
+      !Number.isInteger(accountId) ||
+      typeof expenses !== "number" ||
+      !Number.isFinite(expenses) ||
+      typeof transactionCount !== "number" ||
+      !Number.isInteger(transactionCount)
+    ) {
+      throw new Error("Grist returned invalid account expense totals");
+    }
+
+    const account = accountRecords.find((candidate) => candidate.id === accountId);
+    if (!account) {
+      throw new Error("Grist returned an expense for an unknown account");
+    }
+
+    return {
+      accountId,
+      accountName: account.name,
+      expenses,
+      transactionCount,
+    };
+  });
+
+  const accountExpenses = accountRecords
+    .filter((account) => filters.accounts.includes(account.id))
+    .map((account) => groupedExpenses.find((expense) => expense.accountId === account.id) ?? {
+      accountId: account.id,
+      accountName: account.name,
+      expenses: 0,
+      transactionCount: 0,
+    });
+  const expenses = groupedExpenses.reduce((total, account) => total + account.expenses, 0);
+  const transactionCount = groupedExpenses.reduce((total, account) => total + account.transactionCount, 0);
 
   return {
     month: filters.month,
     expenses,
     transactionCount,
-    accountCount,
+    accountCount: groupedExpenses.length,
+    accountExpenses,
     syncedAt: new Date().toISOString(),
   };
 }
