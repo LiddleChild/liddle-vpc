@@ -29,6 +29,61 @@ const formatMoney = (value: number) =>
     maximumFractionDigits: 2,
   }).format(value);
 
+const FILTER_STORAGE_KEY = "expenses:selected-filters";
+
+const readCachedFilters = (): ExpenseFiltersValue | null => {
+  try {
+    const cached = window.localStorage.getItem(FILTER_STORAGE_KEY);
+    if (!cached) return null;
+
+    const parsed: unknown = JSON.parse(cached);
+    if (!parsed || typeof parsed !== "object") return null;
+
+    const filters = parsed as Record<string, unknown>;
+    if (
+      !Array.isArray(filters.accounts) ||
+      !filters.accounts.every((account) => Number.isInteger(account)) ||
+      !Array.isArray(filters.categories) ||
+      !filters.categories.every((category) => typeof category === "string") ||
+      !Array.isArray(filters.tags) ||
+      !filters.tags.every((tag) => typeof tag === "string")
+    ) {
+      return null;
+    }
+
+    return {
+      accounts: filters.accounts as number[],
+      categories: filters.categories as string[],
+      tags: filters.tags as string[],
+    };
+  } catch {
+    return null;
+  }
+};
+
+const writeCachedFilters = (filters: ExpenseFiltersValue) => {
+  try {
+    window.localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(filters));
+  } catch {
+    // Storage may be unavailable in private browsing or when quota is exceeded.
+  }
+};
+
+const applyCatalogToCachedFilters = (
+  cached: ExpenseFiltersValue | null,
+  catalog: { accounts: Account[]; categories: CatalogChoice[]; tags: CatalogChoice[] },
+): ExpenseFiltersValue => ({
+  accounts: cached
+    ? cached.accounts.filter((id) => catalog.accounts.some((account) => account.id === id))
+    : catalog.accounts.map(({ id }) => id),
+  categories: cached
+    ? cached.categories.filter((value) => catalog.categories.some((category) => category.value === value))
+    : catalog.categories.map(({ value }) => value),
+  tags: cached
+    ? cached.tags.filter((value) => catalog.tags.some((tag) => tag.value === value))
+    : catalog.tags.map(({ value }) => value),
+});
+
 export default function Home() {
   const [monthOffset, setMonthOffset] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
@@ -40,6 +95,7 @@ export default function Home() {
   const [summaryError, setSummaryError] = useState(false);
   const [isSummaryLoading, setIsSummaryLoading] = useState(true);
   const screenViewport = useRef<HTMLDivElement>(null);
+  const hasLoadedCatalog = useRef(false);
   const [filters, setFilters] = useState<ExpenseFiltersValue>({
     accounts: [],
     categories: [],
@@ -94,6 +150,7 @@ export default function Home() {
 
   useEffect(() => {
     let isMounted = true;
+    const cachedFilters = readCachedFilters();
 
     listCatalog().then((catalog) => {
       if (!isMounted) return;
@@ -101,18 +158,19 @@ export default function Home() {
       setCategories(catalog.categories);
       setTags(catalog.tags);
       setAccounts(catalog.accounts);
-      setFilters((current) => ({
-        ...current,
-        accounts: catalog.accounts.map((account) => account.id),
-        categories: catalog.categories.map(({ value }) => value),
-        tags: catalog.tags.map(({ value }) => value),
-      }));
+      setFilters(applyCatalogToCachedFilters(cachedFilters, catalog));
+      hasLoadedCatalog.current = true;
     });
 
     return () => {
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (!hasLoadedCatalog.current) return;
+    writeCachedFilters(filters);
+  }, [filters]);
 
   const handleScroll = () => {
     const viewport = screenViewport.current;
