@@ -7,7 +7,6 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  RefreshCw,
   WifiOff,
 } from "lucide-react";
 import {
@@ -24,8 +23,6 @@ import type {
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat("th-TH", {
-    style: "currency",
-    currency: "THB",
     maximumFractionDigits: 2,
   }).format(value);
 
@@ -215,21 +212,6 @@ export default function Home() {
                     )}
                   </strong>
                   <small>this month</small>
-                </div>
-                <div className="sync-line">
-                  <RefreshCw size={13} />
-                  {isSummaryLoading ? (
-                    <>
-                      <span className="sr-only">Loading expenses</span>
-                      <Skeleton className="sync-skeleton" />
-                    </>
-                  ) : summaryError ? (
-                    "Unable to load expenses"
-                  ) : summary ? (
-                    `Updated ${dayjs(summary.syncedAt).format("h:mm A")}`
-                  ) : (
-                    "Loading expenses"
-                  )}
                 </div>
               </section>
               <div className="month-picker" aria-label="Choose month">
