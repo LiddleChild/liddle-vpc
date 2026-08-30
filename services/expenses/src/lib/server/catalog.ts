@@ -136,7 +136,10 @@ export async function getMonthlyExpenseSummary(
     WHERE t."Date" >= ?
       AND t."Date" < ?
       AND t."Account" IN (SELECT value FROM json_each(?))
-      AND t."Category" IN (SELECT value FROM json_each(?))
+      AND (
+        t."Category" = ""
+        OR t."Category" IN (SELECT value FROM json_each(?))
+      )
       AND (
         t."Tags" is null
         OR EXISTS (
