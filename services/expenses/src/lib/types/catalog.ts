@@ -1,5 +1,5 @@
 export type Account = {
-  id: string;
+  id: number;
   name: string;
 };
 
@@ -17,7 +17,7 @@ export type ExpenseCatalog = {
 
 export type ExpenseSummaryFilters = {
   month: string;
-  accounts: string[];
+  accounts: number[];
   categories: string[];
   tags: string[];
 };
@@ -27,6 +27,5 @@ export type MonthlyExpenseSummary = {
   expenses: number;
   transactionCount: number;
   accountCount: number;
-  currency: string;
   syncedAt: string;
 };

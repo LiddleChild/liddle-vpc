@@ -26,6 +26,14 @@ type ListRecordsResponse = {
   records: GristRecord[];
 };
 
+export type GristSqlRecord = {
+  fields: Record<string, unknown>;
+};
+
+type SqlResponse = {
+  records: GristSqlRecord[];
+};
+
 export type GristClientOptions = {
   baseUrl: string;
   docId: string;
@@ -90,6 +98,21 @@ const parseRecordsResponse = (value: unknown): ListRecordsResponse => {
       id: record.id,
       fields: record.fields,
     };
+  });
+
+  return { records };
+};
+
+const parseSqlResponse = (value: unknown): SqlResponse => {
+  if (!isRecord(value) || !Array.isArray(value.records)) {
+    throw new Error("Grist returned an invalid SQL response");
+  }
+
+  const records = value.records.map((record) => {
+    if (!isRecord(record) || !isRecord(record.fields)) {
+      throw new Error("Grist returned an invalid SQL record");
+    }
+    return { fields: record.fields };
   });
 
   return { records };
@@ -189,6 +212,52 @@ export class GristClient {
 
     try {
       return parseRecordsResponse(payload).records;
+    } catch (error) {
+      throw new GristApiError(
+        error instanceof Error ? error.message : "Grist returned invalid data",
+        response.status,
+      );
+    }
+  }
+
+  async runSql(
+    sql: string,
+    args: Array<string | number> = [],
+  ): Promise<GristSqlRecord[]> {
+    if (!sql.trim()) {
+      throw new Error("A SQL query is required");
+    }
+
+    const url = new URL(
+      `${this.baseUrl}/api/docs/${encodeURIComponent(this.docId)}/sql`,
+    );
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        Authorization: `Bearer ${this.apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ sql, args }),
+      cache: "no-store",
+    });
+
+    if (!response.ok) {
+      throw new GristApiError(
+        `Grist SQL request failed with status ${response.status}`,
+        response.status,
+      );
+    }
+
+    let payload: unknown;
+    try {
+      payload = await response.json();
+    } catch {
+      throw new GristApiError("Grist returned invalid JSON", response.status);
+    }
+
+    try {
+      return parseSqlResponse(payload).records;
     } catch (error) {
       throw new GristApiError(
         error instanceof Error ? error.message : "Grist returned invalid data",

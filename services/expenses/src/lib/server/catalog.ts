@@ -1,20 +1,12 @@
 import { GristClient, type GristColumn } from "@/lib/server/grist-client";
+import dayjs from "dayjs";
 import type {
+  Account,
   CatalogChoice,
   ExpenseCatalog,
   ExpenseSummaryFilters,
   MonthlyExpenseSummary,
 } from "@/lib/types/catalog";
-
-type MockExpense = {
-  account: string;
-  month: string;
-  amount: number;
-  category: string;
-  tags: string[];
-  transactionCount: number;
-  currency: string;
-};
 
 const getGristClient = () =>
   new GristClient({
@@ -90,101 +82,98 @@ const getColumn = (columns: GristColumn[], columnId: string) => {
   return column;
 };
 
-const mockExpenses: MockExpense[] = [
-  {
-    account: "Daily spending",
-    month: "2025-09",
-    amount: 428.35,
-    category: "Everyday",
-    tags: ["Needs", "Card"],
-    transactionCount: 12,
-    currency: "THB",
-  },
-  {
-    account: "Home & bills",
-    month: "2025-09",
-    amount: 1360,
-    category: "Bills",
-    tags: ["Needs", "Recurring"],
-    transactionCount: 4,
-    currency: "THB",
-  },
-  {
-    account: "Shared expenses",
-    month: "2025-09",
-    amount: 225.9,
-    category: "Everyday",
-    tags: ["Shared"],
-    transactionCount: 5,
-    currency: "THB",
-  },
-  {
-    account: "Cash & other",
-    month: "2025-09",
-    amount: 86.2,
-    category: "Other",
-    tags: ["Cash"],
-    transactionCount: 2,
-    currency: "THB",
-  },
-];
-
-export async function getExpenseCatalog(): Promise<ExpenseCatalog> {
-  const client = getGristClient();
-  const [columns, accountRecords] = await Promise.all([
-    client.listTableColumns(
-      process.env.GRIST_TRANSACTIONS_TABLE ?? "Transactions",
-    ),
-    client.listTableRecords("Accounts"),
-  ]);
-
-  const accounts = accountRecords.map((record) => {
+const getAccountRecords = async (client: GristClient): Promise<Account[]> => {
+  const records = await client.listTableRecords("Accounts");
+  return records.map((record) => {
     const name = record.fields.Name;
     if (typeof name !== "string" || !name.trim()) {
       throw new Error("Accounts table contains a record without a valid Name");
     }
-    return { id: String(record.id), name };
+    if (typeof record.id !== "number" || !Number.isInteger(record.id)) {
+      throw new Error("Accounts table contains a record with an invalid ID");
+    }
+    return { id: record.id, name };
   });
+};
+
+const quoteIdentifier = (identifier: string) => {
+  if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(identifier)) {
+    throw new Error(`Invalid Grist identifier: ${identifier}`);
+  }
+  return `"${identifier}"`;
+};
+
+export async function getExpenseCatalog(): Promise<ExpenseCatalog> {
+  const client = getGristClient();
+  const [columns, accountRecords] = await Promise.all([
+    client.listTableColumns("Transactions"),
+    getAccountRecords(client),
+  ]);
 
   return {
     categories: getChoiceValues(getColumn(columns, "Category")),
     tags: getChoiceValues(getColumn(columns, "Tags")),
-    accounts,
+    accounts: accountRecords,
   };
 }
 
 export async function getMonthlyExpenseSummary(
   filters: ExpenseSummaryFilters,
 ): Promise<MonthlyExpenseSummary> {
-  const matchingExpenses = mockExpenses.filter(
-    (expense) =>
-      expense.month === filters.month &&
-      filters.accounts.includes(expense.account) &&
-      (filters.categories.length === 0 ||
-        filters.categories.includes(expense.category)) &&
-      filters.tags.every((tag) => expense.tags.includes(tag)),
-  );
+  const client = getGristClient();
+  const monthStart = dayjs(`${filters.month}-01`);
+  const nextMonthStart = monthStart.add(1, "month");
+  const transactionsTable = quoteIdentifier("Transactions");
+  const sql = `
+    SELECT
+      COALESCE(
+        SUM(t."Amount_In_Account_Currency" * t."Inflow_Direction"),
+        0
+      ) AS expenses,
+      COUNT(*) AS transactionCount,
+      COUNT(DISTINCT t."Account") AS accountCount
+    FROM ${transactionsTable} t
+    WHERE t."Date" >= ?
+      AND t."Date" < ?
+      AND t."Account" IN (SELECT value FROM json_each(?))
+      AND t."Category" IN (SELECT value FROM json_each(?))
+      AND (
+        t."Tags" is null
+        OR EXISTS (
+          SELECT 1
+          FROM json_each(t."Tags") transaction_tag
+          JOIN json_each(?) selected_tag
+          ON selected_tag.value = transaction_tag.value
+        )
+      )
+  `;
 
-  const currencies = new Set(
-    matchingExpenses.map((expense) => expense.currency),
-  );
-  if (currencies.size > 1) {
-    throw new Error("Mixed currencies are not supported");
+  const result = await client.runSql(sql, [
+    monthStart.unix(),
+    nextMonthStart.unix(),
+    JSON.stringify(filters.accounts),
+    JSON.stringify(filters.categories),
+    JSON.stringify(filters.tags),
+  ]);
+
+  const fields = result[0]?.fields;
+  const expenses = fields?.expenses;
+  const transactionCount = fields?.transactionCount;
+  const accountCount = fields?.accountCount;
+  if (
+    typeof expenses !== "number" ||
+    !Number.isFinite(expenses) ||
+    typeof transactionCount !== "number" ||
+    typeof accountCount !== "number"
+  ) {
+    throw new Error("Grist returned invalid expense totals");
   }
 
   return {
     month: filters.month,
-    expenses: matchingExpenses.reduce(
-      (total, expense) => total + expense.amount,
-      0,
-    ),
-    transactionCount: matchingExpenses.reduce(
-      (total, expense) => total + expense.transactionCount,
-      0,
-    ),
-    accountCount: new Set(matchingExpenses.map((expense) => expense.account))
-      .size,
-    currency: matchingExpenses[0]?.currency ?? "THB",
+    expenses,
+    transactionCount,
+    accountCount,
     syncedAt: new Date().toISOString(),
   };
 }

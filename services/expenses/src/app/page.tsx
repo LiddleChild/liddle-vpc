@@ -15,19 +15,17 @@ import {
   type ExpenseFilters as ExpenseFiltersValue,
 } from "@/components/expense-filters";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  getExpensesSummary,
-  listCatalog,
-} from "@/app/actions/catalog";
+import { getExpensesSummary, listCatalog } from "@/app/actions/catalog";
 import type {
+  Account,
   CatalogChoice,
   MonthlyExpenseSummary,
 } from "@/lib/types/catalog";
 
-const formatMoney = (value: number, currency: string) =>
+const formatMoney = (value: number) =>
   new Intl.NumberFormat("th-TH", {
     style: "currency",
-    currency,
+    currency: "THB",
     maximumFractionDigits: 2,
   }).format(value);
 
@@ -35,7 +33,7 @@ export default function Home() {
   const [monthOffset, setMonthOffset] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
-  const [accountNames, setAccountNames] = useState<string[]>([]);
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<CatalogChoice[]>([]);
   const [tags, setTags] = useState<CatalogChoice[]>([]);
   const [summary, setSummary] = useState<MonthlyExpenseSummary | null>(null);
@@ -48,7 +46,7 @@ export default function Home() {
     tags: [],
   });
   const selectedMonth = useMemo(
-    () => dayjs("2025-09-01").add(monthOffset, "month").format("YYYY-MM"),
+    () => dayjs().startOf("month").add(monthOffset, "month").format("YYYY-MM"),
     [monthOffset],
   );
   const month = dayjs(`${selectedMonth}-01`).format("MMMM YYYY");
@@ -100,16 +98,15 @@ export default function Home() {
     listCatalog().then((catalog) => {
       if (!isMounted) return;
 
-        const nextAccountNames = catalog.accounts.map((account) => account.name);
-        setCategories(catalog.categories);
-        setTags(catalog.tags);
-        setAccountNames(nextAccountNames);
-        setFilters((current) => ({
-          ...current,
-          accounts: nextAccountNames,
-          categories: catalog.categories.map(({ value }) => value),
-          tags: catalog.tags.map(({ value }) => value),
-        }));
+      setCategories(catalog.categories);
+      setTags(catalog.tags);
+      setAccounts(catalog.accounts);
+      setFilters((current) => ({
+        ...current,
+        accounts: catalog.accounts.map((account) => account.id),
+        categories: catalog.categories.map(({ value }) => value),
+        tags: catalog.tags.map(({ value }) => value),
+      }));
     });
 
     return () => {
@@ -123,7 +120,14 @@ export default function Home() {
       setShowFilters(viewport.scrollLeft > viewport.clientWidth / 2);
   };
   return isOffline ? (
-    <main className="connection-state"><div className="connection-icon"><WifiOff size={26} /></div><h1>Can’t connect</h1><p>Connect to the internet to view your current expenses.</p><button onClick={() => window.location.reload()}>Try again</button></main>
+    <main className="connection-state">
+      <div className="connection-icon">
+        <WifiOff size={26} />
+      </div>
+      <h1>Can’t connect</h1>
+      <p>Connect to the internet to view your current expenses.</p>
+      <button onClick={() => window.location.reload()}>Try again</button>
+    </main>
   ) : (
     <main className="app-shell">
       <div className="ambient-shape ambient-shape-one" />
@@ -144,11 +148,13 @@ export default function Home() {
                 <div className="expense-circle">
                   <span>Expenses</span>
                   <strong aria-live="polite">
-                    {isSummaryLoading
-                      ? <Skeleton className="expense-amount-skeleton" />
-                      : summaryError
-                        ? "—"
-                        : formatMoney(summary?.expenses ?? 0, summary?.currency ?? "THB")}
+                    {isSummaryLoading ? (
+                      <Skeleton className="expense-amount-skeleton" />
+                    ) : summaryError ? (
+                      "—"
+                    ) : (
+                      formatMoney(summary?.expenses ?? 0)
+                    )}
                   </strong>
                   <small>this month</small>
                 </div>
@@ -159,11 +165,13 @@ export default function Home() {
                       <span className="sr-only">Loading expenses</span>
                       <Skeleton className="sync-skeleton" />
                     </>
-                  ) : summaryError
-                    ? "Unable to load expenses"
-                    : summary
-                      ? `Updated ${dayjs(summary.syncedAt).format("h:mm A")}`
-                      : "Loading expenses"}
+                  ) : summaryError ? (
+                    "Unable to load expenses"
+                  ) : summary ? (
+                    `Updated ${dayjs(summary.syncedAt).format("h:mm A")}`
+                  ) : (
+                    "Loading expenses"
+                  )}
                 </div>
               </section>
               <div className="month-picker" aria-label="Choose month">
@@ -191,8 +199,8 @@ export default function Home() {
           </div>
           <div className="page-screen">
             <ExpenseFilters
-              key={accountNames.join("|")}
-              accountNames={accountNames}
+              key={accounts.map((account) => account.id).join("|")}
+              accounts={accounts}
               categories={categories}
               tags={tags}
               value={filters}
