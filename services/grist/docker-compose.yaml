@@ -16,7 +16,7 @@ services:
 
   grist: # port 8484
     container_name: grist
-    image: gristlabs/grist:latest
+    image: gristlabs/grist:stable
     restart: unless-stopped
     environment:
       REDIS_URL: redis://redis
