@@ -8,6 +8,14 @@ Expenses is a mobile-first PWA optimized for modern iOS Safari. It consumes priv
 
 Prioritize glanceability, minimal interaction, clear financial states, and accessible mobile presentation.
 
+## Current implementation notes
+
+- Expense totals are displayed as plain formatted numbers without a baht/THB currency symbol.
+- The dashboard does not display the summary's `syncedAt` / “Updated at” timestamp.
+- Accounts, categories, and tags are persisted in browser `localStorage`; the selected month is intentionally not persisted.
+- Settings filters apply immediately. Each filter group has selection counts, “Select all” / “Clear” controls, larger touch-friendly option cards, and a global “Clear all” action.
+- Grist choice colors remain available as small swatches beside category and tag options; they do not color the entire control.
+
 The initial dashboard should focus on:
 
 - Current expenses as the dominant visual.
