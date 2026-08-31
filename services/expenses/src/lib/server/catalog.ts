@@ -132,8 +132,8 @@ export async function getMonthlyExpenseSummary(
       COALESCE(SUM(t."Amount_In_Account_Currency" * t."Inflow_Direction"), 0) AS expenses,
       COUNT(*) AS transactionCount
     FROM ${transactionsTable} t
-    WHERE t."Date" >= ?
-      AND t."Date" < ?
+    WHERE t."Bill_Cycle" >= ?
+      AND t."Bill_Cycle" < ?
       AND t."Account" IN (SELECT value FROM json_each(?))
       AND (
         t."Category" = ""
