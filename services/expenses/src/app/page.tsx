@@ -184,7 +184,7 @@ export default function Home() {
         <WifiOff size={26} />
       </div>
       <h1>Can’t connect</h1>
-      <p>Connect to the internet to view your current expenses.</p>
+      <p>Connect to the internet to view what remains available this month.</p>
       <button onClick={() => window.location.reload()}>Try again</button>
     </main>
   ) : (
@@ -201,11 +201,11 @@ export default function Home() {
             <div className="dashboard">
               <section
                 className="expense-hero"
-                aria-label="Current expenses"
+                aria-label="Amount remaining this month"
                 aria-busy={isSummaryLoading}
               >
                 <div className="expense-circle">
-                  <span>Expenses</span>
+                  <span>Available</span>
                   <strong aria-live="polite">
                     {isSummaryLoading ? (
                       <Skeleton className="expense-amount-skeleton" />
@@ -215,7 +215,7 @@ export default function Home() {
                       formatMoney(summary?.expenses ?? 0)
                     )}
                   </strong>
-                  <small>this month</small>
+                  <small>remaining this month</small>
                 </div>
               </section>
               <div className="month-picker" aria-label="Choose month">
@@ -242,8 +242,8 @@ export default function Home() {
               <section className="account-expenses" aria-labelledby="account-expenses-title">
                 <div className="account-expenses-heading">
                   <div>
-                    <p className="account-expenses-kicker">Spending breakdown</p>
-                    <h2 id="account-expenses-title">By account</h2>
+                    <p className="account-expenses-kicker">Remaining balance</p>
+                    <h2 id="account-expenses-title">Available by account</h2>
                   </div>
                   {!isSummaryLoading && !summaryError && summary && (
                     <span>{summary.accountExpenses.length} included</span>
