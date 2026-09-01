@@ -11,6 +11,14 @@ services:
     image: expenses:latest
     build:
       context: .
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+        reservations:
+          cpus: "0.10"
+          memory: 128M
     environment:
       GRIST_URL: http://grist:8484
       GRIST_DOC_ID: ${GRIST_DOC_ID}
