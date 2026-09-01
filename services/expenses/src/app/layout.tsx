@@ -4,6 +4,10 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Expenses",
   description: "View current monthly expenses across all accounts.",
+  icons: {
+    icon: "/icon.svg",
+    apple: "/apple-icon.png",
+  },
   appleWebApp: { capable: true, title: "Expenses", statusBarStyle: "black-translucent" },
 };
 

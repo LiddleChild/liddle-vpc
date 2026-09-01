@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">Expenses</title>
+  <desc id="desc">A receipt with a rising expense line on a deep green background</desc>
+  <rect width="64" height="64" rx="16" fill="#24382d"/>
+  <path d="M21 14.5h22v35l-3.3-2.3-3.3 2.3-3.3-2.3-3.3 2.3-3.3-2.3-3.5 2.3z" fill="#e1f1d8"/>
+  <path d="M27 22h10M27 27h10" fill="none" stroke="#70946d" stroke-linecap="round" stroke-width="2.5"/>
+  <path d="m26.5 40 5.2-5.2 4 2.4 5.2-7.2" fill="none" stroke="#527854" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.7"/>
+  <circle cx="40.9" cy="30" r="2" fill="#527854"/>
+</svg>
