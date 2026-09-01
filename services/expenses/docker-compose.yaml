@@ -8,7 +8,7 @@ networks:
 services:
   expenses:
     container_name: expenses
-    image: expenses:latest
+    image: bosstnp/expenses:latest
     build:
       context: .
     deploy:
