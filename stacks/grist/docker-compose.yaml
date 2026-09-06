@@ -39,6 +39,7 @@ services:
   gristguard:
     container_name: gristguard
     image: bosstnp/gristguard:latest
+    restart: unless-stopped
     environment:
       PORT: 8484
       GRIST_ENDPOINT: http://grist:8484
