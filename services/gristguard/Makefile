@@ -1,3 +1,3 @@
 .PHONY: dev
 dev:
-	@. ./env.sh ; go run .
+	@. ./scripts/env.sh ; go run .
