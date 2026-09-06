@@ -36,3 +36,22 @@ services:
       - default
       - shared
 
+  gristguard:
+    container_name: gristguard
+    image: bosstnp/gristguard:latest
+    environment:
+      PORT: 8484
+      GRIST_ENDPOINT: http://grist:8484
+      GRIST_API_KEY: ${GRISTGUARD_GRIST_API_KEY}
+      GRIST_DOCUMENT_ID: ${GRISTGUARD_GRIST_DOCUMENT_ID}
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+    depends_on:
+      - grist
+    networks:
+      - default
+      - shared
+
