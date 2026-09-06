@@ -48,17 +48,12 @@ func (repo Repository) ListAllEndpoints(ctx context.Context) ([]string, error) {
 	return endpoints, nil
 }
 
-type ListEndpointsByNameAndKeyParams struct {
-	Name string
-	Key  string
-}
-
-type listEndpointsByNameAndKeyRecord struct {
+type listEndpointsByKeyRecord struct {
 	Method   string `json:"method"`
 	Endpoint string `json:"endpoint"`
 }
 
-func (repo Repository) ListEndpointsByNameAndKey(ctx context.Context, params ListEndpointsByNameAndKeyParams) ([]string, error) {
+func (repo Repository) ListEndpointsByKey(ctx context.Context, key string) ([]string, error) {
 	query := `
 	select
 		p.method,
@@ -67,20 +62,18 @@ func (repo Repository) ListEndpointsByNameAndKey(ctx context.Context, params Lis
 	join api_keys k
 	join json_each(k.permissions) kp
 		on kp.value = p.permission
-	where k.name = ?
-		and k.key = ?
+	where k.key = ?
 	`
 
 	req := grist.QueryWithParamsRequest{
 		DocID: repo.documentID,
 		SQL:   query,
 		Args: []any{
-			any(params.Name),
-			any(params.Key),
+			any(key),
 		},
 	}
 
-	resp, err := repo.gristClient.QueryWithParams[listEndpointsByNameAndKeyRecord](ctx, req)
+	resp, err := repo.gristClient.QueryWithParams[listEndpointsByKeyRecord](ctx, req)
 	if err != nil {
 		return nil, err
 	}

@@ -8,6 +8,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"slices"
+	"strings"
 
 	"github.com/LiddleChild/liddle-vpc/gristguard/grist"
 )
@@ -31,18 +32,14 @@ func NewProxy(target *url.URL, repo Repository, apiKey string) Proxy {
 }
 
 func (p Proxy) Handle(w http.ResponseWriter, r *http.Request) {
-	name, key, ok := r.BasicAuth()
+	token := r.Header.Get("Authorization")
+	key, ok := strings.CutPrefix(token, "Bearer ")
 	if !ok {
 		writeError(w, http.StatusUnauthorized, "unauthorized")
 		return
 	}
 
-	params := ListEndpointsByNameAndKeyParams{
-		Name: name,
-		Key:  key,
-	}
-
-	endpoints, err := p.repo.ListEndpointsByNameAndKey(r.Context(), params)
+	endpoints, err := p.repo.ListEndpointsByKey(r.Context(), key)
 	if err != nil {
 		slog.Error(err.Error())
 		writeError(w, http.StatusInternalServerError, "gristguard: internal server error")
