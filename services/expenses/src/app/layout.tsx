@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+// The standalone server must resolve server-side configuration when it handles
+// a request, not while the image is being built.
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Expenses",
   description: "View current monthly expenses across all accounts.",
