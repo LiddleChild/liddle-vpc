@@ -23,14 +23,76 @@ services:
     container_name: tailscale
     image: tailscale/tailscale:latest
     hostname: oci-liddle-vpc
+    restart: always
     env_file:
       - ./.env
     environment:
       - TS_STATE_DIR=/var/lib/tailscale
+      - TS_SERVE_CONFIG=/etc/tailscale/serve.json
     volumes:
       - tailscale_data:/var/lib/tailscale
     cap_add:
       - net_admin
       - net_raw
-    restart: always
+    configs:
+      - source: tailscale_serve_config
+        target: /etc/tailscale/serve.json
+        uid: "103"
+        gid: "103"
+        mode: 0440
 
+configs:
+  tailscale_serve_config:
+    content: |
+      {
+        "Services": {
+          "svc:expenses": {
+            "TCP": {
+              "443": {
+                "HTTPS": true
+              }
+            },
+            "Web": {
+              "expenses.tail30dd77.ts.net:443": {
+                "Handlers": {
+                  "/": {
+                    "Proxy": "http://expenses:3000"
+                  }
+                }
+              }
+            }
+          },
+          "svc:grist": {
+            "TCP": {
+              "443": {
+                "HTTPS": true
+              }
+            },
+            "Web": {
+              "grist.tail30dd77.ts.net:443": {
+                "Handlers": {
+                  "/": {
+                    "Proxy": "http://grist:8484"
+                  }
+                }
+              }
+            }
+          },
+          "svc:portainer": {
+            "TCP": {
+              "443": {
+                "HTTPS": true
+              }
+            },
+            "Web": {
+              "portainer.tail30dd77.ts.net:443": {
+                "Handlers": {
+                  "/": {
+                    "Proxy": "http://portainer:9000"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
