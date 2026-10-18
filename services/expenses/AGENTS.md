@@ -32,10 +32,9 @@ Expense entry, editing, category analytics, and complex charts are out of scope 
 - Use server components by default; add client components only for browser interaction or state.
 - Use Next.js route handlers for the same-origin read-only API.
 - Expose the monthly summary through `GET /api/monthly-summary?month=YYYY-MM`.
-- Keep Grist credentials and private tokens on the server; never expose them in client bundles.
-- Send all Grist API requests through the Next.js backend only; browser and client-side code must not call Grist directly.
-- Keep Grist table and column names isolated in a server-side data adapter. The current fixed tables are `Transactions` and `Accounts`.
-- Normalize and validate proxy responses before rendering them.
+- Keep the Nexus URL on the server; never expose it in client bundles.
+- Send all Nexus requests through the Next.js server only; browser and client-side code must not call Nexus or Grist directly.
+- Keep Nexus access in the server-side data adapter and normalize and validate its responses before rendering them.
 - Keep data access, calculation logic, and presentation in separate modules.
 - Use shadcn/ui components and Tailwind CSS for interface primitives and styling.
 - Prefer small typed modules and pure calculation functions.
@@ -43,9 +42,9 @@ Expense entry, editing, category analytics, and complex charts are out of scope 
 - Use `dayjs` for date and time parsing, calculations, and formatting throughout the project.
 - This is a view-only app: it must not create, edit, delete, or otherwise mutate expense or account data. Local display filters and month navigation are allowed.
 
-The current application uses a server-side Grist client in `src/lib/server/grist-client.ts`. Credentials come from `GRIST_URL`, `GRIST_DOC_ID`, and `GRIST_API_KEY`; do not add a table-name environment variable for the fixed `Transactions` and `Accounts` tables.
+The application uses the server-side Nexus client in `src/lib/server/nexus-client.ts`. It reads `NEXUS_URL`; Grist credentials, document IDs, tables, and columns belong to Nexus and must not be configured in Expenses.
 
-`getExpenseCatalog` reads `Category` and `Tags` choice metadata from `Transactions`, including `choiceOptions` colors, and reads account IDs and `Name` values from `Accounts`. `getMonthlyExpenseSummary` uses Grist's parameterized SQL endpoint to aggregate transactions.
+`getExpenseCatalog` reads the catalog from Nexus. `getMonthlyExpenseSummary` sends the month and selected filters to Nexus as a GET request with CSV list parameters.
 
 ## Data contract
 
@@ -77,7 +76,7 @@ type MonthlyExpenseSummary = {
 
 Shared application types live in `src/lib/types/catalog.ts`. `Account.id` is a number. `ExpenseSummaryFilters.accounts` is a `number[]`; category and tag filters are string arrays. `CatalogChoice` carries the choice value plus optional `textColor` and `fillColor`.
 
-Actual Grist schema names must be confined to the server-side adapter rather than spread through UI components or calculation code.
+Actual Grist schema names are owned by Nexus and must not appear in Expenses UI components or calculation code.
 
 ## API route requirements
 
@@ -130,8 +129,8 @@ expenses = SUM(Amount_In_Account_Currency * Inflow_Direction)
 
 ## Security and privacy
 
-- Never place Grist API keys, private tokens, or server credentials in `NEXT_PUBLIC_*` variables.
-- Always proxy Grist requests through the Next.js backend; do not expose Grist endpoints, credentials, or direct client access paths to the browser.
+- Never place Nexus URLs, Grist API keys, private tokens, or server credentials in `NEXT_PUBLIC_*` variables.
+- Always proxy Nexus requests through the Next.js backend; do not expose Nexus or Grist endpoints, credentials, or direct client access paths to the browser.
 - The proxy must be read-only unless write access is explicitly requested.
 - Do not return raw upstream errors or sensitive Grist details to the browser.
 - Validate response shape, numeric values, and dates before use. Currency is assumed to be THB and is not queried or returned.

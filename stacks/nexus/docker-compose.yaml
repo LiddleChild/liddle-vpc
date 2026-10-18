@@ -1,0 +1,42 @@
+networks:
+  default:
+    name: nexus_net
+
+  shared:
+    external: true
+
+services:
+  nexus:
+    container_name: nexus
+    image: bosstnp/nexus:latest
+    restart: unless-stopped
+    environment:
+      PORT: 8080
+      GRIST_ENDPOINT: http://grist:8484
+      GRIST_DOCUMENT_ID: ${NEXUS_GRIST_DOCUMENT_ID}
+      GRIST_API_KEY: ${NEXUS_GRIST_API_KEY}
+    deploy:
+      resources:
+        limits:
+          cpus: "0.25"
+          memory: 128M
+    networks:
+      - default
+      - shared
+
+  expenses:
+    container_name: expenses
+    image: bosstnp/expenses:latest
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "0.50"
+          memory: 512M
+    environment:
+      NEXUS_URL: http://nexus:8080
+    depends_on:
+      - nexus
+    networks:
+      - default
+      - shared
