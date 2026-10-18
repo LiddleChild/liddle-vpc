@@ -2,6 +2,6 @@
 
 set -e
 
-docker build -t bosstnp/gristguard:latest -f ../Dockerfile ..
+docker build -t bosstnp/nexus:latest -f ../Dockerfile ..
 
-docker push bosstnp/gristguard:latest
+docker push bosstnp/nexus:latest

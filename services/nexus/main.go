@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -10,7 +9,10 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/LiddleChild/liddle-vpc/gristguard/grist"
+	"github.com/LiddleChild/liddle-vpc/nexus/internal/gristapi"
+	"github.com/LiddleChild/liddle-vpc/nexus/internal/handler"
+	"github.com/LiddleChild/liddle-vpc/nexus/internal/repository"
+	"github.com/LiddleChild/liddle-vpc/nexus/internal/service"
 	"github.com/caarlos0/env/v11"
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
@@ -30,23 +32,18 @@ func run() error {
 	}
 
 	var (
-		client = grist.NewClient(cfg.GristEndpoint, cfg.GristAPIKey)
-		repo   = NewRepository(cfg.GristDocumentID, client)
-		proxy  = NewProxy(cfg.GristEndpoint, repo, cfg.GristAPIKey)
+		client         = gristapi.NewClient(cfg.GristEndpoint, cfg.GristAPIKey)
+		repo           = repository.New(cfg.GristDocumentID, client)
+		expenseSvc     = service.NewExpenses(repo)
+		expenseHandler = handler.NewHandler(expenseSvc)
 	)
 
 	mux := chi.NewMux()
 	mux.Use(LoggerMiddleware)
 	mux.Use(chimiddleware.Recoverer)
 
-	endpoints, err := repo.ListAllEndpoints(context.Background())
-	if err != nil {
-		return err
-	}
-
-	for _, endpoint := range endpoints {
-		mux.Handle(endpoint, http.HandlerFunc(proxy.Handle))
-	}
+	mux.Get("/expenses/v1/catalog", expenseHandler.GetExpenseCatalog)
+	mux.Get("/expenses/v1/monthly-summary", expenseHandler.GetMonthlyExpenseSummary)
 
 	stopCh := make(chan os.Signal, 1)
 	signal.Notify(stopCh, syscall.SIGTERM, syscall.SIGINT)
@@ -63,6 +60,8 @@ func run() error {
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			fmt.Fprintln(os.Stderr, err.Error())
 		}
+
+		close(stopCh)
 	}()
 
 	<-stopCh

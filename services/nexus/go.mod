@@ -1,4 +1,4 @@
-module github.com/LiddleChild/liddle-vpc/gristguard
+module github.com/LiddleChild/liddle-vpc/nexus
 
 go 1.27.1
 
