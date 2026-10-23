@@ -31,8 +31,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: "0.50"
-          memory: 512M
+          cpus: "0.25"
+          memory: 256M
     environment:
       BACKEND_URL: http://backend:8080
     depends_on:
