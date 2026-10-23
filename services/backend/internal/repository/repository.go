@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/LiddleChild/liddle-vpc/nexus/internal/gristapi"
-	"github.com/LiddleChild/liddle-vpc/nexus/internal/model"
+	"github.com/LiddleChild/liddle-vpc/backend/internal/gristapi"
+	"github.com/LiddleChild/liddle-vpc/backend/internal/model"
 )
 
 type Repository struct {

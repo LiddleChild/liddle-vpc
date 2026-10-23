@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/LiddleChild/liddle-vpc/nexus/internal/model"
-	"github.com/LiddleChild/liddle-vpc/nexus/internal/service"
+	"github.com/LiddleChild/liddle-vpc/backend/internal/model"
+	"github.com/LiddleChild/liddle-vpc/backend/internal/service"
 )
 
 type ExpensesHandler struct {

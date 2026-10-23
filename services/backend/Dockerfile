@@ -6,7 +6,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o nexus .
+RUN CGO_ENABLED=0 GOOS=linux go build -o backend .
 
 FROM alpine:3
 WORKDIR /app
@@ -15,9 +15,9 @@ RUN apk add --no-cache ca-certificates \
     && addgroup -S app \
     && adduser -S -G app app
 
-COPY --from=builder /app/nexus .
+COPY --from=builder /app/backend .
 
 USER app
 EXPOSE 8080
 
-ENTRYPOINT ["./nexus"]
+ENTRYPOINT ["./backend"]

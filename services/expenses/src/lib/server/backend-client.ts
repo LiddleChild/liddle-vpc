@@ -9,10 +9,10 @@ import type {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
-const getNexusURL = () => {
-  const baseURL = process.env.NEXUS_URL?.replace(/\/+$/, "");
+const getBackendURL = () => {
+  const baseURL = process.env.BACKEND_URL?.replace(/\/+$/, "");
   if (!baseURL) {
-    throw new Error("Nexus URL is not configured");
+    throw new Error("Backend URL is not configured");
   }
   return baseURL;
 };
@@ -23,25 +23,25 @@ const requestJSON = async (url: URL): Promise<unknown> => {
     cache: "no-store",
   });
   if (!response.ok) {
-    throw new Error("Nexus request failed");
+    throw new Error("Backend request failed");
   }
 
   try {
     return await response.json();
   } catch {
-    throw new Error("Nexus returned invalid JSON");
+    throw new Error("Backend returned invalid JSON");
   }
 };
 
 const parseChoice = (value: unknown): CatalogChoice => {
   if (!isRecord(value) || typeof value.value !== "string") {
-    throw new Error("Nexus returned an invalid catalog choice");
+    throw new Error("Backend returned an invalid catalog choice");
   }
   if (
     (value.textColor !== undefined && typeof value.textColor !== "string") ||
     (value.fillColor !== undefined && typeof value.fillColor !== "string")
   ) {
-    throw new Error("Nexus returned invalid catalog styling");
+    throw new Error("Backend returned invalid catalog styling");
   }
 
   return {
@@ -58,7 +58,7 @@ const parseCatalog = (value: unknown): ExpenseCatalog => {
     !Array.isArray(value.tags) ||
     !Array.isArray(value.accounts)
   ) {
-    throw new Error("Nexus returned an invalid expense catalog");
+    throw new Error("Backend returned an invalid expense catalog");
   }
 
   const accounts = value.accounts.map((account) => {
@@ -70,7 +70,7 @@ const parseCatalog = (value: unknown): ExpenseCatalog => {
       typeof account.name !== "string" ||
       !account.name.trim()
     ) {
-      throw new Error("Nexus returned an invalid account");
+      throw new Error("Backend returned an invalid account");
     }
     return { id: account.id, name: account.name };
   });
@@ -95,7 +95,7 @@ const parseAccountExpense = (value: unknown): AccountExpense => {
     !Number.isInteger(value.transactionCount) ||
     value.transactionCount < 0
   ) {
-    throw new Error("Nexus returned invalid account expense totals");
+    throw new Error("Backend returned invalid account expense totals");
   }
 
   return {
@@ -122,7 +122,7 @@ const parseMonthlySummary = (value: unknown): MonthlyExpenseSummary => {
     typeof value.syncedAt !== "string" ||
     !Number.isFinite(Date.parse(value.syncedAt))
   ) {
-    throw new Error("Nexus returned an invalid monthly summary");
+    throw new Error("Backend returned an invalid monthly summary");
   }
 
   return {
@@ -144,14 +144,14 @@ const toCSV = (values: Array<string | number>) =>
     .join(",");
 
 export async function getExpenseCatalog(): Promise<ExpenseCatalog> {
-  const url = new URL(`${getNexusURL()}/expenses/v1/catalog`);
+  const url = new URL(`${getBackendURL()}/expenses/v1/catalog`);
   return parseCatalog(await requestJSON(url));
 }
 
 export async function getMonthlyExpenseSummary(
   filters: ExpenseSummaryFilters,
 ): Promise<MonthlyExpenseSummary> {
-  const url = new URL(`${getNexusURL()}/expenses/v1/monthly-summary`);
+  const url = new URL(`${getBackendURL()}/expenses/v1/monthly-summary`);
   url.searchParams.set("month", filters.month);
   url.searchParams.set("accounts", toCSV(filters.accounts));
   url.searchParams.set("categories", toCSV(filters.categories));
@@ -159,7 +159,7 @@ export async function getMonthlyExpenseSummary(
 
   const summary = parseMonthlySummary(await requestJSON(url));
   if (summary.month !== filters.month) {
-    throw new Error("Nexus returned a summary for a different month");
+    throw new Error("Backend returned a summary for a different month");
   }
   return summary;
 }

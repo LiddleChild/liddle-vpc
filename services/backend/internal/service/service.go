@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/LiddleChild/liddle-vpc/nexus/internal/model"
+	"github.com/LiddleChild/liddle-vpc/backend/internal/model"
 )
 
 var ErrInvalidExpenseRequest = errors.New("invalid expense request")

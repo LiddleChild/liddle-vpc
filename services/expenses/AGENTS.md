@@ -32,9 +32,9 @@ Expense entry, editing, category analytics, and complex charts are out of scope 
 - Use server components by default; add client components only for browser interaction or state.
 - Use Next.js route handlers for the same-origin read-only API.
 - Expose the monthly summary through `GET /api/monthly-summary?month=YYYY-MM`.
-- Keep the Nexus URL on the server; never expose it in client bundles.
-- Send all Nexus requests through the Next.js server only; browser and client-side code must not call Nexus or Grist directly.
-- Keep Nexus access in the server-side data adapter and normalize and validate its responses before rendering them.
+- Keep the Backend URL on the server; never expose it in client bundles.
+- Send all Backend requests through the Next.js server only; browser and client-side code must not call Backend or Grist directly.
+- Keep Backend access in the server-side data adapter and normalize and validate its responses before rendering them.
 - Keep data access, calculation logic, and presentation in separate modules.
 - Use shadcn/ui components and Tailwind CSS for interface primitives and styling.
 - Prefer small typed modules and pure calculation functions.
@@ -42,9 +42,9 @@ Expense entry, editing, category analytics, and complex charts are out of scope 
 - Use `dayjs` for date and time parsing, calculations, and formatting throughout the project.
 - This is a view-only app: it must not create, edit, delete, or otherwise mutate expense or account data. Local display filters and month navigation are allowed.
 
-The application uses the server-side Nexus client in `src/lib/server/nexus-client.ts`. It reads `NEXUS_URL`; Grist credentials, document IDs, tables, and columns belong to Nexus and must not be configured in Expenses.
+The application uses the server-side Backend client in `src/lib/server/backend-client.ts`. It reads `BACKEND_URL`; Grist credentials, document IDs, tables, and columns belong to Backend and must not be configured in Expenses.
 
-`getExpenseCatalog` reads the catalog from Nexus. `getMonthlyExpenseSummary` sends the month and selected filters to Nexus as a GET request with CSV list parameters.
+`getExpenseCatalog` reads the catalog from Backend. `getMonthlyExpenseSummary` sends the month and selected filters to Backend as a GET request with CSV list parameters.
 
 ## Data contract
 
@@ -76,7 +76,7 @@ type MonthlyExpenseSummary = {
 
 Shared application types live in `src/lib/types/catalog.ts`. `Account.id` is a number. `ExpenseSummaryFilters.accounts` is a `number[]`; category and tag filters are string arrays. `CatalogChoice` carries the choice value plus optional `textColor` and `fillColor`.
 
-Actual Grist schema names are owned by Nexus and must not appear in Expenses UI components or calculation code.
+Actual Grist schema names are owned by Backend and must not appear in Expenses UI components or calculation code.
 
 ## API route requirements
 
@@ -129,8 +129,8 @@ expenses = SUM(Amount_In_Account_Currency * Inflow_Direction)
 
 ## Security and privacy
 
-- Never place Nexus URLs, Grist API keys, private tokens, or server credentials in `NEXT_PUBLIC_*` variables.
-- Always proxy Nexus requests through the Next.js backend; do not expose Nexus or Grist endpoints, credentials, or direct client access paths to the browser.
+- Never place Backend URLs, Grist API keys, private tokens, or server credentials in `NEXT_PUBLIC_*` variables.
+- Always proxy Backend requests through the Next.js backend; do not expose Backend or Grist endpoints, credentials, or direct client access paths to the browser.
 - The proxy must be read-only unless write access is explicitly requested.
 - Do not return raw upstream errors or sensitive Grist details to the browser.
 - Validate response shape, numeric values, and dates before use. Currency is assumed to be THB and is not queried or returned.

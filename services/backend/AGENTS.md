@@ -1,6 +1,6 @@
-# Nexus service guidance
+# Backend service guidance
 
-Nexus is the backend boundary for application services that read Grist data. Keep Grist credentials and document IDs on the server.
+Backend is the API boundary for application services that read Grist data. Keep Grist credentials and document IDs on the server.
 
 ## Request flow
 

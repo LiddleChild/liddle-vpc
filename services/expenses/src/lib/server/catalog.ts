@@ -1,7 +1,7 @@
 import {
-  getExpenseCatalog as getNexusExpenseCatalog,
-  getMonthlyExpenseSummary as getNexusMonthlyExpenseSummary,
-} from "@/lib/server/nexus-client";
+  getExpenseCatalog as getBackendExpenseCatalog,
+  getMonthlyExpenseSummary as getBackendMonthlyExpenseSummary,
+} from "@/lib/server/backend-client";
 import type {
   ExpenseCatalog,
   ExpenseSummaryFilters,
@@ -9,11 +9,11 @@ import type {
 } from "@/lib/types/catalog";
 
 export function getExpenseCatalog(): Promise<ExpenseCatalog> {
-  return getNexusExpenseCatalog();
+  return getBackendExpenseCatalog();
 }
 
 export function getMonthlyExpenseSummary(
   filters: ExpenseSummaryFilters,
 ): Promise<MonthlyExpenseSummary> {
-  return getNexusMonthlyExpenseSummary(filters);
+  return getBackendMonthlyExpenseSummary(filters);
 }

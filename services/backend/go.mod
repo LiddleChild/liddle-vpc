@@ -1,4 +1,4 @@
-module github.com/LiddleChild/liddle-vpc/nexus
+module github.com/LiddleChild/liddle-vpc/backend
 
 go 1.27.1
 
