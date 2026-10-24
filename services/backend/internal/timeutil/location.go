@@ -3,6 +3,7 @@ package timeutil
 import (
 	"fmt"
 	"time"
+	_ "time/tzdata"
 )
 
 var (
