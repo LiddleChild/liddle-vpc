@@ -4,19 +4,16 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"maps"
-	"slices"
 	"strings"
 
 	"github.com/LiddleChild/liddle-vpc/backend/internal/frankfurterapi"
-	"github.com/LiddleChild/liddle-vpc/backend/internal/gristapi"
 	"github.com/LiddleChild/liddle-vpc/backend/internal/model"
 	"github.com/LiddleChild/liddle-vpc/backend/internal/timeutil"
 )
 
 type CurrencyRepository interface {
-	ListCurrencyRows(ctx context.Context, tableID string) ([]model.Currency, error)
-	UpdateCurrencyRates(ctx context.Context, tableID string, updates []gristapi.RecordUpdate) error
+	ListCurrencies(ctx context.Context, tableID string) ([]model.Currency, error)
+	UpdateCurrencies(ctx context.Context, tableID string, currencies []model.Currency) error
 }
 
 type CurrencySyncService struct {
@@ -38,7 +35,7 @@ func NewCurrencySyncService(
 }
 
 func (svc CurrencySyncService) Run(ctx context.Context) error {
-	currencies, err := svc.repo.ListCurrencyRows(ctx, svc.tableID)
+	currencies, err := svc.repo.ListCurrencies(ctx, svc.tableID)
 	if err != nil {
 		return fmt.Errorf("read currency table: %w", err)
 	}
@@ -58,8 +55,7 @@ func (svc CurrencySyncService) Run(ctx context.Context) error {
 		return fmt.Errorf("fetch currency rates: %w", err)
 	}
 
-	updates := make([]gristapi.RecordUpdate, 0, len(currencies))
-	updatedCurrencies := make(map[string]struct{})
+	updatedCurrencies := make([]model.Currency, 0, len(currencies))
 	for _, currency := range currencies {
 		code := strings.ToUpper(strings.TrimSpace(currency.Name))
 		rate, ok := rates[code]
@@ -67,29 +63,26 @@ func (svc CurrencySyncService) Run(ctx context.Context) error {
 			continue
 		}
 
-		updatedCurrencies[code] = struct{}{}
-
-		fields := map[string]any{
-			"Rate_To_THB": 1 / rate.Rate,
-			"Updated_At":  timeutil.DateOnly(rate.UpdatedAt.In(timeutil.LocationBangkok)).Unix(),
-		}
-
-		updates = append(updates, gristapi.RecordUpdate{
-			ID:     currency.ID,
-			Fields: fields,
-		})
+		updatedCurrencies = append(updatedCurrencies, currency.UpdateRate(
+			1/rate.Rate,
+			timeutil.DateOnly(rate.UpdatedAt),
+		))
 	}
 
-	if len(updates) > 0 {
-		if err := svc.repo.UpdateCurrencyRates(ctx, svc.tableID, updates); err != nil {
+	if len(updatedCurrencies) > 0 {
+		if err := svc.repo.UpdateCurrencies(ctx, svc.tableID, updatedCurrencies); err != nil {
 			return fmt.Errorf("write currency rates: %w", err)
 		}
 	}
 
+	updatedCodes := make([]string, 0, len(updatedCurrencies))
+	for _, currency := range updatedCurrencies {
+		updatedCodes = append(updatedCodes, currency.Name)
+	}
+
 	slog.Info(
-		"Currency rate sync completed",
-		"table", svc.tableID,
-		"updated_currencies", slices.Collect(maps.Keys(updatedCurrencies)),
+		"currency rate sync completed",
+		"currencies", updatedCodes,
 	)
 
 	return nil

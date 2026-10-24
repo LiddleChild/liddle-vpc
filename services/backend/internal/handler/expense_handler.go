@@ -32,7 +32,7 @@ func (h ExpenseHandler) GetExpenseCatalog(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	writeJSON(w, http.StatusOK, catalog)
+	writeJSON(w, http.StatusOK, newCatalogResponse(catalog))
 }
 
 func (h ExpenseHandler) GetMonthlyExpenseSummary(w http.ResponseWriter, r *http.Request) {
@@ -53,7 +53,7 @@ func (h ExpenseHandler) GetMonthlyExpenseSummary(w http.ResponseWriter, r *http.
 		return
 	}
 
-	writeJSON(w, http.StatusOK, summary)
+	writeJSON(w, http.StatusOK, newMonthlySummaryResponse(summary))
 }
 
 func parseExpenseFilters(query url.Values) (model.ExpenseFilters, error) {

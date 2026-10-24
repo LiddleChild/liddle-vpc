@@ -4,31 +4,31 @@ type Record[T any] struct {
 	Fields T `json:"fields"`
 }
 
-type TableRecord struct {
-	ID     int            `json:"id"`
-	Fields map[string]any `json:"fields"`
+type TableRecord[T any] struct {
+	ID     int `json:"id"`
+	Fields T   `json:"fields"`
 }
 
-type TableColumn struct {
-	ID     string         `json:"id"`
-	Fields map[string]any `json:"fields"`
+type TableColumn[T any] struct {
+	ID     string `json:"id"`
+	Fields T      `json:"fields"`
 }
 
-type RecordUpdate struct {
-	ID     int            `json:"id"`
-	Fields map[string]any `json:"fields"`
+type RecordUpdate[T any] struct {
+	ID     int `json:"id"`
+	Fields T   `json:"fields"`
 }
 
-type recordsUpdateRequest struct {
-	Records []RecordUpdate `json:"records"`
+type recordsUpdateRequest[T any] struct {
+	Records []RecordUpdate[T] `json:"records"`
 }
 
-type tableRecordsResponse struct {
-	Records []TableRecord `json:"records"`
+type tableRecordsResponse[T any] struct {
+	Records []TableRecord[T] `json:"records"`
 }
 
-type tableColumnsResponse struct {
-	Columns []TableColumn `json:"columns"`
+type tableColumnsResponse[T any] struct {
+	Columns []TableColumn[T] `json:"columns"`
 }
 
 type queryWithParamsRequest struct {

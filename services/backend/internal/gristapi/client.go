@@ -32,118 +32,118 @@ type QueryWithParamsResponse[T any] struct {
 	Records []Record[T]
 }
 
-func (client Client) ListTableRecords(ctx context.Context, docID, tableID string) ([]TableRecord, error) {
-	requestURL := client.baseURL.JoinPath(fmt.Sprintf("/api/docs/%s/tables/%s/records", url.PathEscape(docID), url.PathEscape(tableID))).String()
-	response, err := client.get(ctx, requestURL)
+func (c Client) ListTableRecords[T any](ctx context.Context, docID string, tableID string) ([]TableRecord[T], error) {
+	response, err := c.request(
+		ctx,
+		http.MethodGet,
+		fmt.Sprintf("/api/docs/%s/tables/%s/records", url.PathEscape(docID), url.PathEscape(tableID)),
+		nil,
+	)
 	if err != nil {
 		return nil, err
 	}
-	defer response.Body.Close()
-	if response.StatusCode/100 != 2 {
-		return nil, fmt.Errorf("grist records request failed with status %d", response.StatusCode)
-	}
-	var result tableRecordsResponse
-	if err := json.NewDecoder(response.Body).Decode(&result); err != nil {
+
+	var result tableRecordsResponse[T]
+	if err := json.Unmarshal(response, &result); err != nil {
 		return nil, err
 	}
+
 	return result.Records, nil
 }
 
-func (client Client) UpdateTableRecords(ctx context.Context, docID, tableID string, records []RecordUpdate) error {
-	requestURL := client.baseURL.JoinPath(fmt.Sprintf("/api/docs/%s/tables/%s/records", url.PathEscape(docID), url.PathEscape(tableID))).String()
-	body, err := json.Marshal(recordsUpdateRequest{Records: records})
+func (c Client) UpdateTableRecords[T any](ctx context.Context, docID string, tableID string, records []RecordUpdate[T]) error {
+	body, err := json.Marshal(recordsUpdateRequest[T]{Records: records})
 	if err != nil {
 		return err
 	}
-	request, err := http.NewRequestWithContext(ctx, http.MethodPatch, requestURL, bytes.NewReader(body))
-	if err != nil {
-		return err
-	}
-	request.Header.Set("Accept", "application/json")
-	request.Header.Set("Content-Type", "application/json")
-	request.Header.Set("Authorization", fmt.Sprintf("Bearer %s", client.apiKey))
-	response, err := http.DefaultClient.Do(request)
-	if err != nil {
-		return err
-	}
-	defer response.Body.Close()
 
-	if response.StatusCode/100 != 2 {
-		buffer, err := io.ReadAll(response.Body)
-		if err != nil {
-			return fmt.Errorf("failed to read response body: %w", err)
-		}
+	_, err = c.request(
+		ctx,
+		http.MethodPatch,
+		fmt.Sprintf("/api/docs/%s/tables/%s/records", url.PathEscape(docID), url.PathEscape(tableID)),
+		bytes.NewReader(body),
+	)
 
-		return fmt.Errorf("grist update request failed with status: %d, body: %s", response.StatusCode, string(buffer))
-	}
-
-	return nil
+	return err
 }
 
-func (client Client) ListTableColumns(ctx context.Context, docID, tableID string) ([]TableColumn, error) {
-	requestURL := client.baseURL.JoinPath(fmt.Sprintf("/api/docs/%s/tables/%s/columns", url.PathEscape(docID), url.PathEscape(tableID))).String()
-	response, err := client.get(ctx, requestURL)
+func (c Client) ListTableColumns[T any](ctx context.Context, docID string, tableID string) ([]TableColumn[T], error) {
+	response, err := c.request(
+		ctx,
+		http.MethodGet,
+		fmt.Sprintf("/api/docs/%s/tables/%s/columns", url.PathEscape(docID), url.PathEscape(tableID)),
+		nil,
+	)
 	if err != nil {
 		return nil, err
 	}
-	defer response.Body.Close()
-	if response.StatusCode/100 != 2 {
-		return nil, fmt.Errorf("grist columns request failed with status %d", response.StatusCode)
-	}
-	var result tableColumnsResponse
-	if err := json.NewDecoder(response.Body).Decode(&result); err != nil {
+
+	var result tableColumnsResponse[T]
+	if err := json.Unmarshal(response, &result); err != nil {
 		return nil, err
 	}
+
 	return result.Columns, nil
 }
 
-func (client Client) get(ctx context.Context, requestURL string) (*http.Response, error) {
-	request, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
-	if err != nil {
-		return nil, err
-	}
-	request.Header.Set("Accept", "application/json")
-	request.Header.Set("Authorization", fmt.Sprintf("Bearer %s", client.apiKey))
-	return http.DefaultClient.Do(request)
-}
-
-func (client Client) QueryWithParams[T any](ctx context.Context, req QueryWithParamsRequest) (QueryWithParamsResponse[T], error) {
-	requestURL := client.baseURL.JoinPath(fmt.Sprintf("/api/docs/%s/sql", req.DocID)).String()
-
+func (c Client) QueryWithParams[T any](ctx context.Context, req QueryWithParamsRequest) (QueryWithParamsResponse[T], error) {
 	body := queryWithParamsRequest{
 		SQL:     req.SQL,
 		Args:    req.Args,
 		Timeout: nil,
 	}
 
-	buffer := new(bytes.Buffer)
-	if err := json.NewEncoder(buffer).Encode(body); err != nil {
-		return QueryWithParamsResponse[T]{}, err
-	}
-
-	httpRequest, err := http.NewRequestWithContext(ctx, http.MethodPost, requestURL, buffer)
+	buffer, err := json.Marshal(body)
 	if err != nil {
 		return QueryWithParamsResponse[T]{}, err
 	}
 
-	token := fmt.Sprintf("Bearer %s", client.apiKey)
-	httpRequest.Header.Set("Authorization", token)
-	httpRequest.Header.Set("Content-Type", "application/json")
-
-	httpResponse, err := http.DefaultClient.Do(httpRequest)
+	responseBody, err := c.request(
+		ctx,
+		http.MethodPost,
+		fmt.Sprintf("/api/docs/%s/sql", url.PathEscape(req.DocID)),
+		bytes.NewReader(buffer),
+	)
 	if err != nil {
 		return QueryWithParamsResponse[T]{}, err
-	}
-	defer httpResponse.Body.Close()
-
-	if httpResponse.StatusCode/100 != 2 {
-		return QueryWithParamsResponse[T]{}, fmt.Errorf("grist SQL request failed with status %d", httpResponse.StatusCode)
 	}
 
 	var response queryWithParamsResponse[T]
-	if err := json.NewDecoder(httpResponse.Body).Decode(&response); err != nil {
+	if err := json.Unmarshal(responseBody, &response); err != nil {
 		return QueryWithParamsResponse[T]{}, err
 	}
 
 	return QueryWithParamsResponse[T]{Records: response.Records}, nil
+}
+
+func (c Client) request(ctx context.Context, method string, path string, body io.Reader) ([]byte, error) {
+	requestURL := c.baseURL.JoinPath(path).String()
+
+	req, err := http.NewRequestWithContext(ctx, method, requestURL, body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.apiKey))
+
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
+	httpResp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer httpResp.Body.Close()
+
+	respBody, err := io.ReadAll(httpResp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read grist response body: %w", err)
+	}
+
+	if httpResp.StatusCode/100 != 2 {
+		return nil, fmt.Errorf("grist request failed with status %d: %s", httpResp.StatusCode, string(respBody))
+	}
+
+	return respBody, nil
 }

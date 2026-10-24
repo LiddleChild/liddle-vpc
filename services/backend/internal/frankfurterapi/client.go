@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"maps"
 	"net/http"
 	"net/url"
@@ -28,7 +29,7 @@ func NewClient(endpoint *url.URL) Client {
 	}
 }
 
-func (client Client) RatesToTHB(ctx context.Context, currencies []string) (ExchangeRateResponse, error) {
+func (c Client) RatesToTHB(ctx context.Context, currencies []string) (ExchangeRateResponse, error) {
 	resp := ExchangeRateResponse{
 		"THB": {
 			Rate:      1,
@@ -46,16 +47,21 @@ func (client Client) RatesToTHB(ctx context.Context, currencies []string) (Excha
 		quotes[code] = struct{}{}
 	}
 
-	endpoint := client.endpoint.JoinPath("v2/rates")
+	endpoint := c.endpoint.JoinPath("v2/rates")
 
 	query := endpoint.Query()
 	query.Set("base", "THB")
 	query.Set("quotes", strings.Join(slices.Collect(maps.Keys(quotes)), ","))
 	endpoint.RawQuery = query.Encode()
 
-	rates, err := client.makeHTTPRequest(ctx, endpoint)
+	respBody, err := c.request(ctx, endpoint)
 	if err != nil {
 		return nil, err
+	}
+
+	var rates []frankfurterRate
+	if err := json.Unmarshal(respBody, &rates); err != nil {
+		return nil, fmt.Errorf("decode Frankfurter response: %w", err)
 	}
 
 	requested := make(map[string]struct{}, len(quotes))
@@ -63,19 +69,19 @@ func (client Client) RatesToTHB(ctx context.Context, currencies []string) (Excha
 		requested[quote] = struct{}{}
 	}
 
-	for _, row := range rates {
-		quote := strings.ToUpper(row.Quote)
+	for _, rate := range rates {
+		quote := strings.ToUpper(rate.Quote)
 		if _, ok := quotes[quote]; !ok {
 			continue
 		}
 
-		updatedAt, err := time.Parse(time.DateOnly, row.Date)
+		updatedAt, err := time.Parse(time.DateOnly, rate.Date)
 		if err != nil {
 			return nil, fmt.Errorf("failed to parse date: %w", err)
 		}
 
 		resp[quote] = ExchangeRate{
-			Rate:      row.Rate,
+			Rate:      rate.Rate,
 			UpdatedAt: updatedAt,
 		}
 	}
@@ -83,15 +89,13 @@ func (client Client) RatesToTHB(ctx context.Context, currencies []string) (Excha
 	return resp, nil
 }
 
-func (client Client) makeHTTPRequest(ctx context.Context, endpoint *url.URL) ([]frankfurterRate, error) {
+func (c Client) request(ctx context.Context, endpoint *url.URL) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint.String(), nil)
 	if err != nil {
 		return nil, fmt.Errorf("create Frankfurter request: %w", err)
 	}
 
-	req.Header.Set("Accept", "application/json")
-
-	resp, err := client.client.Do(req)
+	resp, err := c.client.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("send Frankfurter request: %w", err)
 	}
@@ -101,10 +105,10 @@ func (client Client) makeHTTPRequest(ctx context.Context, endpoint *url.URL) ([]
 		return nil, fmt.Errorf("Frankfurter request failed with status %d", resp.StatusCode)
 	}
 
-	var rates []frankfurterRate
-	if err := json.NewDecoder(resp.Body).Decode(&rates); err != nil {
-		return nil, fmt.Errorf("decode Frankfurter response: %w", err)
+	buffers, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("error reading response body: %w", err)
 	}
 
-	return rates, nil
+	return buffers, nil
 }

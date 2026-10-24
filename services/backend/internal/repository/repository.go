@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"math"
 	"strings"
 	"time"
 
@@ -25,12 +24,12 @@ func New(documentID string, gristClient gristapi.Client) Repository {
 }
 
 func (repo Repository) GetExpenseCatalog(ctx context.Context) (model.Catalog, error) {
-	columns, err := repo.gristClient.ListTableColumns(ctx, repo.documentID, "Transactions")
+	columns, err := repo.gristClient.ListTableColumns[transactionColumnFields](ctx, repo.documentID, "Transactions")
 	if err != nil {
 		return model.Catalog{}, err
 	}
 
-	accounts, err := repo.gristClient.ListTableRecords(ctx, repo.documentID, "Accounts")
+	accounts, err := repo.gristClient.ListTableRecords[accountFields](ctx, repo.documentID, "Accounts")
 	if err != nil {
 		return model.Catalog{}, err
 	}
@@ -58,20 +57,13 @@ func (repo Repository) GetExpenseCatalog(ctx context.Context) (model.Catalog, er
 	}
 
 	for _, record := range accounts {
-		name, ok := record.Fields["Name"].(string)
-		if !ok || strings.TrimSpace(name) == "" || record.ID < 1 {
+		if strings.TrimSpace(record.Fields.Name) == "" || record.ID < 1 {
 			return model.Catalog{}, fmt.Errorf("account record has invalid name")
 		}
-		catalog.Accounts = append(catalog.Accounts, model.Account{ID: record.ID, Name: name})
+		catalog.Accounts = append(catalog.Accounts, model.Account{ID: record.ID, Name: record.Fields.Name})
 	}
 
 	return catalog, nil
-}
-
-type monthlySummaryRecord struct {
-	AccountID        int     `json:"accountId"`
-	Expenses         float64 `json:"expenses"`
-	TransactionCount int     `json:"transactionCount"`
 }
 
 func (repo Repository) GetMonthlyExpenseSummary(ctx context.Context, filters model.ExpenseFilters) (model.MonthlySummary, error) {
@@ -82,9 +74,9 @@ func (repo Repository) GetMonthlyExpenseSummary(ctx context.Context, filters mod
 
 	query := `
 	select
-		t."Account" as accountId,
+		t."Account" as account_id,
 		coalesce(sum(t."Amount_In_Account_Currency" * t."Inflow_Direction"), 0) as expenses,
-		count(*) as transactionCount
+		count(*) as transaction_count
 	from "Transactions" t
 	where t."Bill_Cycle" >= ?
 	  and t."Bill_Cycle" < ?
@@ -121,15 +113,15 @@ func (repo Repository) GetMonthlyExpenseSummary(ctx context.Context, filters mod
 	if err != nil {
 		return model.MonthlySummary{}, err
 	}
-	accountRecords, err := repo.gristClient.ListTableRecords(ctx, repo.documentID, "Accounts")
+	accountRecords, err := repo.gristClient.ListTableRecords[accountFields](ctx, repo.documentID, "Accounts")
 	if err != nil {
 		return model.MonthlySummary{}, err
 	}
 
 	accountNames := make(map[int]string, len(accountRecords))
 	for _, account := range accountRecords {
-		if name, ok := account.Fields["Name"].(string); ok && strings.TrimSpace(name) != "" && account.ID > 0 {
-			accountNames[account.ID] = name
+		if strings.TrimSpace(account.Fields.Name) != "" && account.ID > 0 {
+			accountNames[account.ID] = account.Fields.Name
 		}
 	}
 
@@ -174,66 +166,48 @@ func (repo Repository) GetMonthlyExpenseSummary(ctx context.Context, filters mod
 	return summary, nil
 }
 
-func getColumnChoices(column gristapi.TableColumn) ([]model.Choice, error) {
-	widgetOptions, ok := column.Fields["widgetOptions"].(string)
-	if !ok {
+func getColumnChoices(column gristapi.TableColumn[transactionColumnFields]) ([]model.Choice, error) {
+	widgetOptions := column.Fields.WidgetOptions
+	if widgetOptions == "" {
 		return nil, fmt.Errorf("column %s has no choice options", column.ID)
 	}
-	var options struct {
-		Choices       []string `json:"choices"`
-		ChoiceOptions map[string]struct {
-			TextColor string `json:"textColor"`
-			FillColor string `json:"fillColor"`
-		} `json:"choiceOptions"`
-	}
+
+	var options choiceOptions
+
 	if err := json.Unmarshal([]byte(widgetOptions), &options); err != nil {
 		return nil, fmt.Errorf("column %s has invalid choice options", column.ID)
 	}
+
 	if options.Choices == nil {
 		return nil, fmt.Errorf("column %s has no choices", column.ID)
 	}
+
 	choices := make([]model.Choice, 0, len(options.Choices))
 	for _, value := range options.Choices {
 		option := options.ChoiceOptions[value]
 		choices = append(choices, model.Choice{Value: value, TextColor: option.TextColor, FillColor: option.FillColor})
 	}
+
 	return choices, nil
 }
 
-func (repo Repository) ListCurrencyRows(ctx context.Context, tableID string) ([]model.Currency, error) {
-	records, err := repo.gristClient.ListTableRecords(ctx, repo.documentID, tableID)
+func (repo Repository) ListCurrencies(ctx context.Context, tableID string) ([]model.Currency, error) {
+	records, err := repo.gristClient.ListTableRecords[currencyFields](ctx, repo.documentID, tableID)
 	if err != nil {
 		return nil, err
 	}
 
 	rows := make([]model.Currency, 0, len(records))
 	for _, record := range records {
-		if record.ID < 1 {
-			return nil, fmt.Errorf("currency table contains an invalid row ID")
-		}
-		name, ok := record.Fields["Currency"].(string)
-		if !ok {
-			name = ""
-		}
-		rateToTHB, err := gristNumber(record.Fields["Rate To THB"])
-		if err != nil {
-			return nil, fmt.Errorf("currency row %d has an invalid rate", record.ID)
-		}
-		updatedAtSeconds, err := gristNumber(record.Fields["Updated At"])
-		if err != nil {
-			return nil, fmt.Errorf("currency row %d has an invalid updated date", record.ID)
-		}
 		updatedAt := time.Time{}
-		if updatedAtSeconds != 0 {
-			seconds := int64(updatedAtSeconds)
-			nanoseconds := int64((updatedAtSeconds - float64(seconds)) * float64(time.Second))
-			updatedAt = time.Unix(seconds, nanoseconds).UTC()
+		if record.Fields.UpdatedAt > 0 {
+			updatedAt = time.Unix(record.Fields.UpdatedAt, 0)
 		}
 
 		rows = append(rows, model.Currency{
 			ID:        record.ID,
-			Name:      name,
-			RateToTHB: rateToTHB,
+			Name:      record.Fields.Name,
+			RateToTHB: record.Fields.RateToTHB,
 			UpdatedAt: updatedAt,
 		})
 	}
@@ -241,33 +215,18 @@ func (repo Repository) ListCurrencyRows(ctx context.Context, tableID string) ([]
 	return rows, nil
 }
 
-func gristNumber(value any) (float64, error) {
-	if value == nil {
-		return 0, nil
+func (repo Repository) UpdateCurrencies(ctx context.Context, tableID string, currencies []model.Currency) error {
+	updates := make([]gristapi.RecordUpdate[currencyFields], 0, len(currencies))
+	for _, currency := range currencies {
+		updates = append(updates, gristapi.RecordUpdate[currencyFields]{
+			ID: currency.ID,
+			Fields: currencyFields{
+				Name:      currency.Name,
+				RateToTHB: currency.RateToTHB,
+				UpdatedAt: currency.UpdatedAt.UTC().Unix(),
+			},
+		})
 	}
-	var number float64
-	switch value := value.(type) {
-	case float64:
-		number = value
-	case int:
-		number = float64(value)
-	case int64:
-		number = float64(value)
-	case json.Number:
-		parsed, err := value.Float64()
-		if err != nil {
-			return 0, err
-		}
-		number = parsed
-	default:
-		return 0, fmt.Errorf("expected number, got %T", value)
-	}
-	if math.IsNaN(number) || math.IsInf(number, 0) {
-		return 0, fmt.Errorf("number must be finite")
-	}
-	return number, nil
-}
 
-func (repo Repository) UpdateCurrencyRates(ctx context.Context, tableID string, updates []gristapi.RecordUpdate) error {
 	return repo.gristClient.UpdateTableRecords(ctx, repo.documentID, tableID, updates)
 }
