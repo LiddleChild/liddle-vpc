@@ -11,12 +11,12 @@ import (
 var _ scheduler.Task = (*CurrencyTaskHandler)(nil)
 
 type CurrencyTaskHandler struct {
-	currencySync service.CurrencySync
+	svc service.CurrencySyncService
 }
 
-func NewCurrencyTaskHandler(currencySync service.CurrencySync) CurrencyTaskHandler {
+func NewCurrencySyncTaskHandler(svc service.CurrencySyncService) CurrencyTaskHandler {
 	return CurrencyTaskHandler{
-		currencySync: currencySync,
+		svc: svc,
 	}
 }
 
@@ -31,5 +31,5 @@ func (h CurrencyTaskHandler) Schedule() string {
 func (h CurrencyTaskHandler) Run(ctx context.Context) error {
 	runCtx, cancel := context.WithTimeout(ctx, 2*time.Minute)
 	defer cancel()
-	return h.currencySync.Run(runCtx)
+	return h.svc.Run(runCtx)
 }

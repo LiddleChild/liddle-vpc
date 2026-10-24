@@ -19,26 +19,26 @@ type CurrencyRepository interface {
 	UpdateCurrencyRates(ctx context.Context, tableID string, updates []gristapi.RecordUpdate) error
 }
 
-type CurrencySync struct {
+type CurrencySyncService struct {
 	tableID     string
 	repo        CurrencyRepository
 	frankfurter frankfurterapi.Client
 }
 
-func NewCurrencySync(
+func NewCurrencySyncService(
 	tableID string,
 	repo CurrencyRepository,
 	frankfurter frankfurterapi.Client,
-) CurrencySync {
-	return CurrencySync{
+) CurrencySyncService {
+	return CurrencySyncService{
 		tableID:     tableID,
 		repo:        repo,
 		frankfurter: frankfurter,
 	}
 }
 
-func (service CurrencySync) Run(ctx context.Context) error {
-	currencies, err := service.repo.ListCurrencyRows(ctx, service.tableID)
+func (svc CurrencySyncService) Run(ctx context.Context) error {
+	currencies, err := svc.repo.ListCurrencyRows(ctx, svc.tableID)
 	if err != nil {
 		return fmt.Errorf("read currency table: %w", err)
 	}
@@ -53,7 +53,7 @@ func (service CurrencySync) Run(ctx context.Context) error {
 		codes = append(codes, code)
 	}
 
-	rates, err := service.frankfurter.RatesToTHB(ctx, codes)
+	rates, err := svc.frankfurter.RatesToTHB(ctx, codes)
 	if err != nil {
 		return fmt.Errorf("fetch currency rates: %w", err)
 	}
@@ -70,8 +70,8 @@ func (service CurrencySync) Run(ctx context.Context) error {
 		updatedCurrencies[code] = struct{}{}
 
 		fields := map[string]any{
-			"Rate To THB": rate.ToTHB,
-			"Updated At":  timeutil.DateOnly(rate.Date.In(timeutil.LocationBangkok)).Unix(),
+			"Rate_To_THB": 1 / rate.Rate,
+			"Updated_At":  timeutil.DateOnly(rate.UpdatedAt.In(timeutil.LocationBangkok)).Unix(),
 		}
 
 		updates = append(updates, gristapi.RecordUpdate{
@@ -81,14 +81,14 @@ func (service CurrencySync) Run(ctx context.Context) error {
 	}
 
 	if len(updates) > 0 {
-		if err := service.repo.UpdateCurrencyRates(ctx, service.tableID, updates); err != nil {
+		if err := svc.repo.UpdateCurrencyRates(ctx, svc.tableID, updates); err != nil {
 			return fmt.Errorf("write currency rates: %w", err)
 		}
 	}
 
 	slog.Info(
 		"Currency rate sync completed",
-		"table", service.tableID,
+		"table", svc.tableID,
 		"updated_currencies", slices.Collect(maps.Keys(updatedCurrencies)),
 	)
 

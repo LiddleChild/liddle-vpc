@@ -16,19 +16,21 @@ type Repository interface {
 	GetMonthlyExpenseSummary(ctx context.Context, filters model.ExpenseFilters) (model.MonthlySummary, error)
 }
 
-type ExpensesService struct {
+type ExpenseService struct {
 	repo Repository
 }
 
-func NewExpenses(repo Repository) ExpensesService {
-	return ExpensesService{repo: repo}
+func NewExpenseService(repo Repository) ExpenseService {
+	return ExpenseService{
+		repo: repo,
+	}
 }
 
-func (service ExpensesService) GetExpenseCatalog(ctx context.Context) (model.Catalog, error) {
-	return service.repo.GetExpenseCatalog(ctx)
+func (svc ExpenseService) GetExpenseCatalog(ctx context.Context) (model.Catalog, error) {
+	return svc.repo.GetExpenseCatalog(ctx)
 }
 
-func (service ExpensesService) GetMonthlyExpenseSummary(ctx context.Context, filters model.ExpenseFilters) (model.MonthlySummary, error) {
+func (svc ExpenseService) GetMonthlyExpenseSummary(ctx context.Context, filters model.ExpenseFilters) (model.MonthlySummary, error) {
 	monthStart, err := time.Parse("2006-01", filters.Month)
 	if err != nil || monthStart.Format("2006-01") != filters.Month {
 		return model.MonthlySummary{}, fmt.Errorf("%w: month must use YYYY-MM format", ErrInvalidExpenseRequest)
@@ -44,5 +46,5 @@ func (service ExpensesService) GetMonthlyExpenseSummary(ctx context.Context, fil
 		}
 	}
 
-	return service.repo.GetMonthlyExpenseSummary(ctx, filters)
+	return svc.repo.GetMonthlyExpenseSummary(ctx, filters)
 }

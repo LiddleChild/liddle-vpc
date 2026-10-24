@@ -28,11 +28,11 @@ func NewClient(endpoint *url.URL) Client {
 	}
 }
 
-func (client Client) RatesToTHB(ctx context.Context, currencies []string) (map[string]Rate, error) {
-	resp := map[string]Rate{
+func (client Client) RatesToTHB(ctx context.Context, currencies []string) (ExchangeRateResponse, error) {
+	resp := ExchangeRateResponse{
 		"THB": {
-			ToTHB: 1,
-			Date:  time.Now(),
+			Rate:      1,
+			UpdatedAt: time.Now(),
 		},
 	}
 
@@ -74,9 +74,9 @@ func (client Client) RatesToTHB(ctx context.Context, currencies []string) (map[s
 			return nil, fmt.Errorf("failed to parse date: %w", err)
 		}
 
-		resp[quote] = Rate{
-			ToTHB: 1 / row.Rate,
-			Date:  updatedAt,
+		resp[quote] = ExchangeRate{
+			Rate:      row.Rate,
+			UpdatedAt: updatedAt,
 		}
 	}
 

@@ -2,9 +2,11 @@ package frankfurterapi
 
 import "time"
 
-type Rate struct {
-	ToTHB float64
-	Date  time.Time
+type ExchangeRateResponse map[string]ExchangeRate
+
+type ExchangeRate struct {
+	Rate      float64
+	UpdatedAt time.Time
 }
 
 type frankfurterRate struct {

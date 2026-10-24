@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 )
@@ -66,9 +67,16 @@ func (client Client) UpdateTableRecords(ctx context.Context, docID, tableID stri
 		return err
 	}
 	defer response.Body.Close()
+
 	if response.StatusCode/100 != 2 {
-		return fmt.Errorf("grist update request failed with status %d", response.StatusCode)
+		buffer, err := io.ReadAll(response.Body)
+		if err != nil {
+			return fmt.Errorf("failed to read response body: %w", err)
+		}
+
+		return fmt.Errorf("grist update request failed with status: %d, body: %s", response.StatusCode, string(buffer))
 	}
+
 	return nil
 }
 

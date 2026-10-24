@@ -14,16 +14,18 @@ import (
 	"github.com/LiddleChild/liddle-vpc/backend/internal/service"
 )
 
-type ExpensesHandler struct {
-	service service.ExpensesService
+type ExpenseHandler struct {
+	svc service.ExpenseService
 }
 
-func NewHandler(service service.ExpensesService) ExpensesHandler {
-	return ExpensesHandler{service: service}
+func NewExpenseHandler(svc service.ExpenseService) ExpenseHandler {
+	return ExpenseHandler{
+		svc: svc,
+	}
 }
 
-func (handler ExpensesHandler) GetExpenseCatalog(w http.ResponseWriter, r *http.Request) {
-	catalog, err := handler.service.GetExpenseCatalog(r.Context())
+func (h ExpenseHandler) GetExpenseCatalog(w http.ResponseWriter, r *http.Request) {
+	catalog, err := h.svc.GetExpenseCatalog(r.Context())
 	if err != nil {
 		slog.Error("failed to get expense catalog", slog.String("error", err.Error()))
 		writeError(w, http.StatusBadGateway, "expense catalog is unavailable")
@@ -33,14 +35,14 @@ func (handler ExpensesHandler) GetExpenseCatalog(w http.ResponseWriter, r *http.
 	writeJSON(w, http.StatusOK, catalog)
 }
 
-func (handler ExpensesHandler) GetMonthlyExpenseSummary(w http.ResponseWriter, r *http.Request) {
+func (h ExpenseHandler) GetMonthlyExpenseSummary(w http.ResponseWriter, r *http.Request) {
 	filters, err := parseExpenseFilters(r.URL.Query())
 	if err != nil {
 		writeError(w, http.StatusBadRequest, "invalid query parameters")
 		return
 	}
 
-	summary, err := handler.service.GetMonthlyExpenseSummary(r.Context(), filters)
+	summary, err := h.svc.GetMonthlyExpenseSummary(r.Context(), filters)
 	switch {
 	case errors.Is(err, service.ErrInvalidExpenseRequest):
 		writeError(w, http.StatusBadRequest, err.Error())

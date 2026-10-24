@@ -42,11 +42,13 @@ func run() error {
 
 		repo = repository.New(cfg.GristDocumentID, gristClient)
 
-		expenseSvc   = service.NewExpenses(repo)
-		currencySync = service.NewCurrencySync(cfg.CurrencyTableID, repo, frankfurtherClient)
+		expenseSvc      = service.NewExpenseService(repo)
+		currencySyncSvc = service.NewCurrencySyncService(cfg.CurrencyTableID, repo, frankfurtherClient)
 
-		expenseHandler   = handler.NewHandler(expenseSvc)
-		schedulerHandler = handler.NewCurrencyTaskHandler(currencySync)
+		expenseHandler = handler.NewExpenseHandler(expenseSvc)
+		taskHandler    = handler.NewTaskHandler(currencySyncSvc)
+
+		currencySyncTaskHandler = handler.NewCurrencySyncTaskHandler(currencySyncSvc)
 	)
 
 	mux := chi.NewMux()
@@ -55,6 +57,7 @@ func run() error {
 
 	mux.Get("/expenses/v1/catalog", expenseHandler.GetExpenseCatalog)
 	mux.Get("/expenses/v1/monthly-summary", expenseHandler.GetMonthlyExpenseSummary)
+	mux.Post("/tasks/v1/currency-sync", taskHandler.TriggerCurrencyTask)
 
 	server := http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Port),
@@ -62,7 +65,7 @@ func run() error {
 	}
 
 	taskScheduler := scheduler.New()
-	taskScheduler.ScheduleTask(schedulerHandler)
+	taskScheduler.ScheduleTask(currencySyncTaskHandler)
 
 	notifyCtx, notifyCancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
 	defer notifyCancel()
