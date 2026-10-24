@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -8,14 +9,18 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
+	"github.com/LiddleChild/liddle-vpc/backend/internal/frankfurterapi"
 	"github.com/LiddleChild/liddle-vpc/backend/internal/gristapi"
 	"github.com/LiddleChild/liddle-vpc/backend/internal/handler"
 	"github.com/LiddleChild/liddle-vpc/backend/internal/repository"
+	"github.com/LiddleChild/liddle-vpc/backend/internal/scheduler"
 	"github.com/LiddleChild/liddle-vpc/backend/internal/service"
 	"github.com/caarlos0/env/v11"
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
+	"golang.org/x/sync/errgroup"
 )
 
 func main() {
@@ -32,10 +37,16 @@ func run() error {
 	}
 
 	var (
-		client         = gristapi.NewClient(cfg.GristEndpoint, cfg.GristAPIKey)
-		repo           = repository.New(cfg.GristDocumentID, client)
-		expenseSvc     = service.NewExpenses(repo)
-		expenseHandler = handler.NewHandler(expenseSvc)
+		gristClient        = gristapi.NewClient(cfg.GristEndpoint, cfg.GristAPIKey)
+		frankfurtherClient = frankfurterapi.NewClient(cfg.FrankfurterEndpoint)
+
+		repo = repository.New(cfg.GristDocumentID, gristClient)
+
+		expenseSvc   = service.NewExpenses(repo)
+		currencySync = service.NewCurrencySync(cfg.CurrencyTableID, repo, frankfurtherClient)
+
+		expenseHandler   = handler.NewHandler(expenseSvc)
+		schedulerHandler = handler.NewCurrencyTaskHandler(currencySync)
 	)
 
 	mux := chi.NewMux()
@@ -45,32 +56,55 @@ func run() error {
 	mux.Get("/expenses/v1/catalog", expenseHandler.GetExpenseCatalog)
 	mux.Get("/expenses/v1/monthly-summary", expenseHandler.GetMonthlyExpenseSummary)
 
-	stopCh := make(chan os.Signal, 1)
-	signal.Notify(stopCh, syscall.SIGTERM, syscall.SIGINT)
-
 	server := http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Port),
 		Handler: mux,
 	}
 
-	go func() {
-		slog.Info(fmt.Sprintf("Listening on :%d", cfg.Port))
+	taskScheduler := scheduler.New()
+	taskScheduler.ScheduleTask(schedulerHandler)
 
-		err := server.ListenAndServe()
-		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			fmt.Fprintln(os.Stderr, err.Error())
+	notifyCtx, notifyCancel := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT)
+	defer notifyCancel()
+
+	runtimeGroup, runtimeCtx := errgroup.WithContext(notifyCtx)
+
+	runtimeGroup.Go(func() error {
+		slog.Info(fmt.Sprintf("listening on :%d", cfg.Port))
+		if err := server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			return err
 		}
 
-		close(stopCh)
-	}()
+		return nil
+	})
 
-	<-stopCh
-	slog.Info("Shutting down")
+	<-runtimeCtx.Done()
 
-	if err := server.Close(); err != nil {
-		return err
+	slog.Info("shutting down")
+
+	var shutdownErrors []error
+
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+	slog.Info("stopping task scheduler")
+	taskScheduler.Stop(shutdownCtx)
+
+	shutdownCtx, shutdownCancel = context.WithTimeout(context.Background(), 10*time.Second)
+	defer shutdownCancel()
+	slog.Info("shutting down http server")
+	if err := server.Shutdown(shutdownCtx); err != nil {
+		shutdownErrors = append(shutdownErrors, err)
+		slog.Error("error shutting down http server",
+			"error", err.Error(),
+		)
 	}
 
-	slog.Info("Gracefully shutdown")
-	return nil
+	slog.Info("gracefully shutdown")
+
+	errs := append(
+		[]error{runtimeGroup.Wait()},
+		shutdownErrors...,
+	)
+
+	return errors.Join(errs...)
 }

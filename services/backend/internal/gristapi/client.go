@@ -48,6 +48,30 @@ func (client Client) ListTableRecords(ctx context.Context, docID, tableID string
 	return result.Records, nil
 }
 
+func (client Client) UpdateTableRecords(ctx context.Context, docID, tableID string, records []RecordUpdate) error {
+	requestURL := client.baseURL.JoinPath(fmt.Sprintf("/api/docs/%s/tables/%s/records", url.PathEscape(docID), url.PathEscape(tableID))).String()
+	body, err := json.Marshal(recordsUpdateRequest{Records: records})
+	if err != nil {
+		return err
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodPatch, requestURL, bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	request.Header.Set("Accept", "application/json")
+	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set("Authorization", fmt.Sprintf("Bearer %s", client.apiKey))
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+	if response.StatusCode/100 != 2 {
+		return fmt.Errorf("grist update request failed with status %d", response.StatusCode)
+	}
+	return nil
+}
+
 func (client Client) ListTableColumns(ctx context.Context, docID, tableID string) ([]TableColumn, error) {
 	requestURL := client.baseURL.JoinPath(fmt.Sprintf("/api/docs/%s/tables/%s/columns", url.PathEscape(docID), url.PathEscape(tableID))).String()
 	response, err := client.get(ctx, requestURL)

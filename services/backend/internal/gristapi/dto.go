@@ -14,6 +14,15 @@ type TableColumn struct {
 	Fields map[string]any `json:"fields"`
 }
 
+type RecordUpdate struct {
+	ID     int            `json:"id"`
+	Fields map[string]any `json:"fields"`
+}
+
+type recordsUpdateRequest struct {
+	Records []RecordUpdate `json:"records"`
+}
+
 type tableRecordsResponse struct {
 	Records []TableRecord `json:"records"`
 }

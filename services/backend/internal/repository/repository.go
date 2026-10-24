@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -197,4 +198,76 @@ func getColumnChoices(column gristapi.TableColumn) ([]model.Choice, error) {
 		choices = append(choices, model.Choice{Value: value, TextColor: option.TextColor, FillColor: option.FillColor})
 	}
 	return choices, nil
+}
+
+func (repo Repository) ListCurrencyRows(ctx context.Context, tableID string) ([]model.Currency, error) {
+	records, err := repo.gristClient.ListTableRecords(ctx, repo.documentID, tableID)
+	if err != nil {
+		return nil, err
+	}
+
+	rows := make([]model.Currency, 0, len(records))
+	for _, record := range records {
+		if record.ID < 1 {
+			return nil, fmt.Errorf("currency table contains an invalid row ID")
+		}
+		name, ok := record.Fields["Currency"].(string)
+		if !ok {
+			name = ""
+		}
+		rateToTHB, err := gristNumber(record.Fields["Rate To THB"])
+		if err != nil {
+			return nil, fmt.Errorf("currency row %d has an invalid rate", record.ID)
+		}
+		updatedAtSeconds, err := gristNumber(record.Fields["Updated At"])
+		if err != nil {
+			return nil, fmt.Errorf("currency row %d has an invalid updated date", record.ID)
+		}
+		updatedAt := time.Time{}
+		if updatedAtSeconds != 0 {
+			seconds := int64(updatedAtSeconds)
+			nanoseconds := int64((updatedAtSeconds - float64(seconds)) * float64(time.Second))
+			updatedAt = time.Unix(seconds, nanoseconds).UTC()
+		}
+
+		rows = append(rows, model.Currency{
+			ID:        record.ID,
+			Name:      name,
+			RateToTHB: rateToTHB,
+			UpdatedAt: updatedAt,
+		})
+	}
+
+	return rows, nil
+}
+
+func gristNumber(value any) (float64, error) {
+	if value == nil {
+		return 0, nil
+	}
+	var number float64
+	switch value := value.(type) {
+	case float64:
+		number = value
+	case int:
+		number = float64(value)
+	case int64:
+		number = float64(value)
+	case json.Number:
+		parsed, err := value.Float64()
+		if err != nil {
+			return 0, err
+		}
+		number = parsed
+	default:
+		return 0, fmt.Errorf("expected number, got %T", value)
+	}
+	if math.IsNaN(number) || math.IsInf(number, 0) {
+		return 0, fmt.Errorf("number must be finite")
+	}
+	return number, nil
+}
+
+func (repo Repository) UpdateCurrencyRates(ctx context.Context, tableID string, updates []gristapi.RecordUpdate) error {
+	return repo.gristClient.UpdateTableRecords(ctx, repo.documentID, tableID, updates)
 }
