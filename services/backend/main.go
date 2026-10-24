@@ -24,6 +24,8 @@ import (
 )
 
 func main() {
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+
 	if err := run(); err != nil {
 		slog.Error(fmt.Sprintf("error: %s", err.Error()))
 		os.Exit(1)
