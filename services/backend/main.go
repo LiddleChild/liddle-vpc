@@ -46,9 +46,11 @@ func run() error {
 
 		expenseSvc      = service.NewExpenseService(repo)
 		currencySyncSvc = service.NewCurrencySyncService(cfg.CurrencyTableID, repo, frankfurtherClient)
+		ingestionSvc    = service.NewIngestionService()
 
 		expenseHandler = handler.NewExpenseHandler(expenseSvc)
 		taskHandler    = handler.NewTaskHandler(currencySyncSvc)
+		apiHandler     = handler.NewAPIHandler(ingestionSvc)
 
 		currencySyncTaskHandler = handler.NewCurrencySyncTaskHandler(currencySyncSvc)
 	)
@@ -59,7 +61,10 @@ func run() error {
 
 	mux.Get("/expenses/v1/catalog", expenseHandler.GetExpenseCatalog)
 	mux.Get("/expenses/v1/monthly-summary", expenseHandler.GetMonthlyExpenseSummary)
+
 	mux.Post("/tasks/v1/currency-sync", taskHandler.TriggerCurrencyTask)
+
+	mux.Get("/api/v1/ingestion/instruction", apiHandler.GetModelIngestionInstruction)
 
 	server := http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Port),
