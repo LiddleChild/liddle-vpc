@@ -12,9 +12,9 @@ Prioritize glanceability, minimal interaction, clear financial states, and acces
 
 - Expense totals are displayed as plain formatted numbers without a baht/THB currency symbol.
 - The dashboard does not display the summary's `syncedAt` / “Updated at” timestamp.
-- Accounts, categories, and tags are persisted in browser `localStorage`; the selected month is intentionally not persisted.
+- Account and tag filters are persisted in browser `localStorage`; the selected month is intentionally not persisted.
 - Settings filters apply immediately. Each filter group has selection counts, “Select all” / “Clear” controls, larger touch-friendly option cards, and a global “Clear all” action.
-- Grist choice colors remain available as small swatches beside category and tag options; they do not color the entire control.
+- Grist choice colors remain available as small swatches beside tag options; they do not color the entire control.
 
 The initial dashboard should focus on:
 
@@ -74,7 +74,7 @@ type MonthlyExpenseSummary = {
 }
 ```
 
-Shared application types live in `src/lib/types/catalog.ts`. `Account.id` is a number. `ExpenseSummaryFilters.accounts` is a `number[]`; category and tag filters are string arrays. `CatalogChoice` carries the choice value plus optional `textColor` and `fillColor`.
+Shared application types live in `src/lib/types/catalog.ts`. `Account.id` is a number. `ExpenseSummaryFilters.accounts` is a `number[]`; tag filters are string arrays. `CatalogChoice` carries the choice value plus optional `textColor` and `fillColor`.
 
 Actual Grist schema names are owned by Backend and must not appear in Expenses UI components or calculation code.
 
@@ -101,7 +101,6 @@ expenses = SUM(Amount_In_Account_Currency * Inflow_Direction)
 
 - The current query assumes all transactions are in THB; currency is not part of the response.
 - Accounts are matched by `Transactions.Account` row ID.
-- Categories use scalar `IN` matching.
 - Tags are stored as a JSON array and use a join through `json_each`; a transaction matches when it contains any selected tag.
 - Empty filter arrays do not bypass SQL predicates; the UI defaults to selecting every available value.
 
@@ -120,7 +119,7 @@ expenses = SUM(Amount_In_Account_Currency * Inflow_Direction)
 - Keep the first screen focused on the selected month and its current expense total.
 - Keep the first screen minimal: show the current expense total and month picker, without account or expense breakdowns.
 - Open Settings by swiping left using horizontal CSS scroll snap; swipe right to return to the main page. Do not add a filter button.
-- Settings filters apply immediately. Categories, tags, and accounts are multi-select. All catalog values are selected by default. Use a compact “Clear all” action in the top-right.
+- Settings filters apply immediately. Tags and accounts are multi-select. All catalog values are selected by default. Use a compact “Clear all” action in the top-right.
 - Support both portrait and landscape layouts. Do not force orientation or show an orientation-rotation prompt.
 - Do not reset the selected page on `pagehide`; preserve normal browser/PWA page lifecycle behavior.
 - Show explicit loading, empty-month, API failure, malformed-data, offline/connectivity, stale-data, and overspending states.

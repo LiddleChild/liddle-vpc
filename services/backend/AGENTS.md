@@ -15,8 +15,8 @@ Backend is the API boundary for application services that read Grist data. Keep 
 ## API behavior
 
 - Expense endpoints are read-only and live under `/expenses/v1`.
-- `GET /expenses/v1/catalog` returns account, category, and tag choices.
-- `GET /expenses/v1/monthly-summary` accepts `month` and CSV `accounts`, `categories`, and `tags` query parameters.
+- `GET /expenses/v1/catalog` returns account and tag choices.
+- `GET /expenses/v1/monthly-summary` accepts `month` and CSV `accounts` and `tags` query parameters.
 - These endpoints rely on private tailnet reachability and do not use application-level authentication.
 - Return generic upstream errors to callers. Do not expose Grist errors, credentials, or private records in logs.
 - Preserve the JSON response shapes consumed by the Expenses service.

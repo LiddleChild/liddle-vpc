@@ -14,16 +14,14 @@ type Account struct {
 }
 
 type Catalog struct {
-	Categories []Choice
-	Tags       []Choice
-	Accounts   []Account
+	Tags     []Choice
+	Accounts []Account
 }
 
 type ExpenseFilters struct {
-	Month      string
-	Accounts   []int
-	Categories []string
-	Tags       []string
+	Month    string
+	Accounts []int
+	Tags     []string
 }
 
 type AccountExpense struct {

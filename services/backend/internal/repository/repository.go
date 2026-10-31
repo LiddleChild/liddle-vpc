@@ -35,15 +35,12 @@ func (repo Repository) GetExpenseCatalog(ctx context.Context) (model.Catalog, er
 	}
 
 	catalog := model.Catalog{
-		Categories: []model.Choice{},
-		Tags:       []model.Choice{},
-		Accounts:   make([]model.Account, 0, len(accounts)),
+		Tags:     []model.Choice{},
+		Accounts: make([]model.Account, 0, len(accounts)),
 	}
 
 	for _, column := range columns {
 		switch column.ID {
-		case "Category":
-			catalog.Categories, err = getColumnChoices(column)
 		case "Tags":
 			catalog.Tags, err = getColumnChoices(column)
 		}
@@ -52,7 +49,7 @@ func (repo Repository) GetExpenseCatalog(ctx context.Context) (model.Catalog, er
 		}
 	}
 
-	if catalog.Categories == nil || catalog.Tags == nil {
+	if catalog.Tags == nil {
 		return model.Catalog{}, fmt.Errorf("transaction catalog columns are missing")
 	}
 
@@ -82,10 +79,6 @@ func (repo Repository) GetMonthlyExpenseSummary(ctx context.Context, filters mod
 	  and t."Bill_Cycle" < ?
 	  and t."Account" in (select value from json_each(?))
 	  and (
-	    t."Category" = ''
-	    or t."Category" in (select value from json_each(?))
-	  )
-	  and (
 	    t."Tags" is null
 	    or exists (
 	      select 1
@@ -97,7 +90,6 @@ func (repo Repository) GetMonthlyExpenseSummary(ctx context.Context, filters mod
 	group by t."Account"
 	`
 	accountsJSON, _ := json.Marshal(filters.Accounts)
-	categoriesJSON, _ := json.Marshal(filters.Categories)
 	tagsJSON, _ := json.Marshal(filters.Tags)
 	response, err := repo.gristClient.QueryWithParams[monthlySummaryRecord](ctx, gristapi.QueryWithParamsRequest{
 		DocID: repo.documentID,
@@ -106,7 +98,6 @@ func (repo Repository) GetMonthlyExpenseSummary(ctx context.Context, filters mod
 			monthStart.Unix(),
 			monthStart.AddDate(0, 1, 0).Unix(),
 			string(accountsJSON),
-			string(categoriesJSON),
 			string(tagsJSON),
 		},
 	})

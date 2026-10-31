@@ -36,8 +36,8 @@ func (svc ExpenseService) GetMonthlyExpenseSummary(ctx context.Context, filters 
 		return model.MonthlySummary{}, fmt.Errorf("%w: month must use YYYY-MM format", ErrInvalidExpenseRequest)
 	}
 
-	if filters.Accounts == nil || filters.Categories == nil || filters.Tags == nil {
-		return model.MonthlySummary{}, fmt.Errorf("%w: accounts, categories, and tags are required", ErrInvalidExpenseRequest)
+	if filters.Accounts == nil || filters.Tags == nil {
+		return model.MonthlySummary{}, fmt.Errorf("%w: accounts and tags are required", ErrInvalidExpenseRequest)
 	}
 
 	for _, accountID := range filters.Accounts {

@@ -6,13 +6,11 @@ import type { Account, CatalogChoice } from "@/lib/types/catalog"
 
 export type ExpenseFilters = {
   accounts: number[]
-  categories: string[]
   tags: string[]
 }
 
 type ExpenseFiltersProps = {
   accounts: Account[]
-  categories: CatalogChoice[]
   tags: CatalogChoice[]
   value: ExpenseFilters
   onApply: (filters: ExpenseFilters) => void
@@ -59,7 +57,7 @@ function FilterSection<T>({ title, items, selected, getKey, getLabel, getStyle, 
   )
 }
 
-export function ExpenseFilters({ accounts, categories, tags, value, onApply }: ExpenseFiltersProps) {
+export function ExpenseFilters({ accounts, tags, value, onApply }: ExpenseFiltersProps) {
   const [draft, setDraft] = useState(value)
 
   const update = <K extends keyof ExpenseFilters>(key: K, item: ExpenseFilters[K][number]) => {
@@ -77,7 +75,7 @@ export function ExpenseFilters({ accounts, categories, tags, value, onApply }: E
   }
 
   const clearAll = () => {
-    const nextFilters = { accounts: [], categories: [], tags: [] }
+    const nextFilters = { accounts: [], tags: [] }
     setDraft(nextFilters)
     onApply(nextFilters)
   }
@@ -90,7 +88,6 @@ export function ExpenseFilters({ accounts, categories, tags, value, onApply }: E
       </header>
       <p className="filter-intro">Choose what to include in your monthly total. Changes apply instantly.</p>
       <FilterSection title="Accounts" items={accounts} selected={draft.accounts} getKey={(account) => account.id} getLabel={(account) => account.name} onToggle={(account) => update("accounts", account.id)} onSelectAll={() => setAll<"accounts">("accounts", accounts.map(({ id }) => id))} onClear={() => setAll<"accounts">("accounts", [])} />
-      <FilterSection title="Categories" items={categories} selected={draft.categories} getKey={(category) => category.value} getLabel={(category) => category.value} getStyle={(category) => ({ color: category.textColor, backgroundColor: category.fillColor, borderColor: category.fillColor })} onToggle={(category) => update("categories", category.value)} onSelectAll={() => setAll<"categories">("categories", categories.map(({ value }) => value))} onClear={() => setAll<"categories">("categories", [])} />
       <FilterSection title="Tags" items={tags} selected={draft.tags} getKey={(tag) => tag.value} getLabel={(tag) => tag.value} getStyle={(tag) => ({ color: tag.textColor, backgroundColor: tag.fillColor, borderColor: tag.fillColor })} onToggle={(tag) => update("tags", tag.value)} onSelectAll={() => setAll<"tags">("tags", tags.map(({ value }) => value))} onClear={() => setAll<"tags">("tags", [])} />
     </section>
   )

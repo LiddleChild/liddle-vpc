@@ -44,8 +44,6 @@ const readCachedFilters = (): ExpenseFiltersValue | null => {
     if (
       !Array.isArray(filters.accounts) ||
       !filters.accounts.every((account) => Number.isInteger(account)) ||
-      !Array.isArray(filters.categories) ||
-      !filters.categories.every((category) => typeof category === "string") ||
       !Array.isArray(filters.tags) ||
       !filters.tags.every((tag) => typeof tag === "string")
     ) {
@@ -54,7 +52,6 @@ const readCachedFilters = (): ExpenseFiltersValue | null => {
 
     return {
       accounts: filters.accounts as number[],
-      categories: filters.categories as string[],
       tags: filters.tags as string[],
     };
   } catch {
@@ -72,14 +69,11 @@ const writeCachedFilters = (filters: ExpenseFiltersValue) => {
 
 const applyCatalogToCachedFilters = (
   cached: ExpenseFiltersValue | null,
-  catalog: { accounts: Account[]; categories: CatalogChoice[]; tags: CatalogChoice[] },
+  catalog: { accounts: Account[]; tags: CatalogChoice[] },
 ): ExpenseFiltersValue => ({
   accounts: cached
     ? cached.accounts.filter((id) => catalog.accounts.some((account) => account.id === id))
     : catalog.accounts.map(({ id }) => id),
-  categories: cached
-    ? cached.categories.filter((value) => catalog.categories.some((category) => category.value === value))
-    : catalog.categories.map(({ value }) => value),
   tags: cached
     ? cached.tags.filter((value) => catalog.tags.some((tag) => tag.value === value))
     : catalog.tags.map(({ value }) => value),
@@ -90,7 +84,6 @@ export default function Home() {
   const [showFilters, setShowFilters] = useState(false);
   const [isOffline, setIsOffline] = useState(false);
   const [accounts, setAccounts] = useState<Account[]>([]);
-  const [categories, setCategories] = useState<CatalogChoice[]>([]);
   const [tags, setTags] = useState<CatalogChoice[]>([]);
   const [summary, setSummary] = useState<MonthlyExpenseSummary | null>(null);
   const [summaryError, setSummaryError] = useState(false);
@@ -99,7 +92,6 @@ export default function Home() {
   const hasLoadedCatalog = useRef(false);
   const [filters, setFilters] = useState<ExpenseFiltersValue>({
     accounts: [],
-    categories: [],
     tags: [],
   });
   const selectedMonth = useMemo(
@@ -156,7 +148,6 @@ export default function Home() {
     listCatalog().then((catalog) => {
       if (!isMounted) return;
 
-      setCategories(catalog.categories);
       setTags(catalog.tags);
       setAccounts(catalog.accounts);
       setFilters(applyCatalogToCachedFilters(cachedFilters, catalog));
@@ -291,7 +282,6 @@ export default function Home() {
             <ExpenseFilters
               key={accounts.map((account) => account.id).join("|")}
               accounts={accounts}
-              categories={categories}
               tags={tags}
               value={filters}
               onApply={setFilters}

@@ -57,7 +57,7 @@ func (h ExpenseHandler) GetMonthlyExpenseSummary(w http.ResponseWriter, r *http.
 }
 
 func parseExpenseFilters(query url.Values) (model.ExpenseFilters, error) {
-	for _, key := range []string{"month", "accounts", "categories", "tags"} {
+	for _, key := range []string{"month", "accounts", "tags"} {
 		if !query.Has(key) {
 			return model.ExpenseFilters{}, errors.New("required query parameter is missing")
 		}
@@ -81,11 +81,6 @@ func parseExpenseFilters(query url.Values) (model.ExpenseFilters, error) {
 			return model.ExpenseFilters{}, errors.New("account ID must be an integer")
 		}
 		filters.Accounts = append(filters.Accounts, accountID)
-	}
-
-	filters.Categories, err = parseCSVFilters(query, "categories")
-	if err != nil {
-		return model.ExpenseFilters{}, err
 	}
 
 	filters.Tags, err = parseCSVFilters(query, "tags")

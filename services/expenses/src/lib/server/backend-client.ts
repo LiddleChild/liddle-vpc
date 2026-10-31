@@ -54,7 +54,6 @@ const parseChoice = (value: unknown): CatalogChoice => {
 const parseCatalog = (value: unknown): ExpenseCatalog => {
   if (
     !isRecord(value) ||
-    !Array.isArray(value.categories) ||
     !Array.isArray(value.tags) ||
     !Array.isArray(value.accounts)
   ) {
@@ -76,7 +75,6 @@ const parseCatalog = (value: unknown): ExpenseCatalog => {
   });
 
   return {
-    categories: value.categories.map(parseChoice),
     tags: value.tags.map(parseChoice),
     accounts,
   };
@@ -154,7 +152,6 @@ export async function getMonthlyExpenseSummary(
   const url = new URL(`${getBackendURL()}/expenses/v1/monthly-summary`);
   url.searchParams.set("month", filters.month);
   url.searchParams.set("accounts", toCSV(filters.accounts));
-  url.searchParams.set("categories", toCSV(filters.categories));
   url.searchParams.set("tags", toCSV(filters.tags));
 
   const summary = parseMonthlySummary(await requestJSON(url));

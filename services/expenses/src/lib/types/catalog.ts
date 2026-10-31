@@ -10,7 +10,6 @@ export type CatalogChoice = {
 };
 
 export type ExpenseCatalog = {
-  categories: CatalogChoice[];
   tags: CatalogChoice[];
   accounts: Account[];
 };
@@ -18,7 +17,6 @@ export type ExpenseCatalog = {
 export type ExpenseSummaryFilters = {
   month: string;
   accounts: number[];
-  categories: string[];
   tags: string[];
 };
 

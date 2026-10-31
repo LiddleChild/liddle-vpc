@@ -18,9 +18,8 @@ type accountResponse struct {
 }
 
 type catalogResponse struct {
-	Categories []choiceResponse  `json:"categories"`
-	Tags       []choiceResponse  `json:"tags"`
-	Accounts   []accountResponse `json:"accounts"`
+	Tags     []choiceResponse  `json:"tags"`
+	Accounts []accountResponse `json:"accounts"`
 }
 
 type accountExpenseResponse struct {
@@ -40,12 +39,6 @@ type monthlySummaryResponse struct {
 }
 
 func newCatalogResponse(catalog model.Catalog) catalogResponse {
-	categories := make([]choiceResponse, 0, len(catalog.Categories))
-
-	for _, choice := range catalog.Categories {
-		categories = append(categories, choiceResponse{Value: choice.Value, TextColor: choice.TextColor, FillColor: choice.FillColor})
-	}
-
 	tags := make([]choiceResponse, 0, len(catalog.Tags))
 	for _, choice := range catalog.Tags {
 		tags = append(tags, choiceResponse{Value: choice.Value, TextColor: choice.TextColor, FillColor: choice.FillColor})
@@ -57,9 +50,8 @@ func newCatalogResponse(catalog model.Catalog) catalogResponse {
 	}
 
 	return catalogResponse{
-		Categories: categories,
-		Tags:       tags,
-		Accounts:   accounts,
+		Tags:     tags,
+		Accounts: accounts,
 	}
 }
 
