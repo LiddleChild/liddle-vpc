@@ -19,8 +19,16 @@ type RecordUpdate[T any] struct {
 	Fields T   `json:"fields"`
 }
 
+type RecordAdd[T any] struct {
+	Fields T `json:"fields"`
+}
+
 type recordsUpdateRequest[T any] struct {
 	Records []RecordUpdate[T] `json:"records"`
+}
+
+type recordsAddRequest[T any] struct {
+	Records []RecordAdd[T] `json:"records"`
 }
 
 type tableRecordsResponse[T any] struct {

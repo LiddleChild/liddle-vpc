@@ -67,6 +67,21 @@ func (c Client) UpdateTableRecords[T any](ctx context.Context, docID string, tab
 	return err
 }
 
+func (c Client) AddTableRecords[T any](ctx context.Context, docID string, tableID string, records []RecordAdd[T]) error {
+	body, err := json.Marshal(recordsAddRequest[T]{Records: records})
+	if err != nil {
+		return err
+	}
+
+	_, err = c.request(
+		ctx,
+		http.MethodPost,
+		fmt.Sprintf("/api/docs/%s/tables/%s/records", url.PathEscape(docID), url.PathEscape(tableID)),
+		bytes.NewReader(body),
+	)
+	return err
+}
+
 func (c Client) ListTableColumns[T any](ctx context.Context, docID string, tableID string) ([]TableColumn[T], error) {
 	response, err := c.request(
 		ctx,

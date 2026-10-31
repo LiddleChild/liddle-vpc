@@ -13,5 +13,6 @@ type Config struct {
 
 	FrankfurterEndpoint *url.URL `env:"FRANKFURTER_ENDPOINT"`
 
-	CurrencyTableID string `env:"BACKEND_CURRENCY_TABLE_ID"`
+	CurrencyTableID             string `env:"BACKEND_CURRENCY_TABLE_ID"`
+	IngestedTransactionsTableID string `env:"BACKEND_INGESTED_TRANSACTIONS_TABLE_ID"`
 }

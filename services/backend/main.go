@@ -42,11 +42,12 @@ func run() error {
 		gristClient        = gristapi.NewClient(cfg.GristEndpoint, cfg.GristAPIKey)
 		frankfurtherClient = frankfurterapi.NewClient(cfg.FrankfurterEndpoint)
 
-		repo = repository.New(cfg.GristDocumentID, gristClient)
+		repo                    = repository.New(cfg.GristDocumentID, gristClient)
+		ingestedTransactionRepo = repository.NewIngestedTransactionRepository(cfg.GristDocumentID, cfg.IngestedTransactionsTableID, gristClient)
 
 		expenseSvc      = service.NewExpenseService(repo)
 		currencySyncSvc = service.NewCurrencySyncService(cfg.CurrencyTableID, repo, frankfurtherClient)
-		ingestionSvc    = service.NewIngestionService()
+		ingestionSvc    = service.NewIngestionService(ingestedTransactionRepo)
 
 		expenseHandler = handler.NewExpenseHandler(expenseSvc)
 		taskHandler    = handler.NewTaskHandler(currencySyncSvc)
@@ -65,6 +66,7 @@ func run() error {
 	mux.Post("/tasks/v1/currency-sync", taskHandler.TriggerCurrencyTask)
 
 	mux.Get("/api/v1/ingestion/instruction", apiHandler.GetModelIngestionInstruction)
+	mux.Post("/api/v1/ingestion/transaction", apiHandler.IngestTransaction)
 
 	server := http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Port),
