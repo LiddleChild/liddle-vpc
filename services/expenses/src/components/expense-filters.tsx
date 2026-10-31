@@ -2,7 +2,7 @@
 
 import { Check, ListFilter, RotateCcw } from "lucide-react"
 import { useState, type CSSProperties } from "react"
-import type { Account, CatalogChoice } from "@/lib/types/catalog"
+import { NO_TAGS_FILTER, type Account, type CatalogChoice } from "@/lib/types/catalog"
 
 export type ExpenseFilters = {
   accounts: number[]
@@ -88,7 +88,7 @@ export function ExpenseFilters({ accounts, tags, value, onApply }: ExpenseFilter
       </header>
       <p className="filter-intro">Choose what to include in your monthly total. Changes apply instantly.</p>
       <FilterSection title="Accounts" items={accounts} selected={draft.accounts} getKey={(account) => account.id} getLabel={(account) => account.name} onToggle={(account) => update("accounts", account.id)} onSelectAll={() => setAll<"accounts">("accounts", accounts.map(({ id }) => id))} onClear={() => setAll<"accounts">("accounts", [])} />
-      <FilterSection title="Tags" items={tags} selected={draft.tags} getKey={(tag) => tag.value} getLabel={(tag) => tag.value} getStyle={(tag) => ({ color: tag.textColor, backgroundColor: tag.fillColor, borderColor: tag.fillColor })} onToggle={(tag) => update("tags", tag.value)} onSelectAll={() => setAll<"tags">("tags", tags.map(({ value }) => value))} onClear={() => setAll<"tags">("tags", [])} />
+      <FilterSection title="Tags" items={tags} selected={draft.tags} getKey={(tag) => tag.value} getLabel={(tag) => tag.value === NO_TAGS_FILTER ? "No tags" : tag.value} getStyle={(tag) => tag.value === NO_TAGS_FILTER ? undefined : ({ color: tag.textColor, backgroundColor: tag.fillColor, borderColor: tag.fillColor })} onToggle={(tag) => update("tags", tag.value)} onSelectAll={() => setAll<"tags">("tags", tags.map(({ value }) => value))} onClear={() => setAll<"tags">("tags", [])} />
     </section>
   )
 }

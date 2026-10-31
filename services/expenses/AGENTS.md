@@ -101,7 +101,7 @@ expenses = SUM(Amount_In_Account_Currency * Inflow_Direction)
 
 - The current query assumes all transactions are in THB; currency is not part of the response.
 - Accounts are matched by `Transactions.Account` row ID.
-- Tags are stored as a JSON array and use a join through `json_each`; a transaction matches when it contains any selected tag.
+- Tags are stored as a JSON array and use a join through `json_each`; a transaction matches when it contains any selected tag. The “No tags” option selects transactions with null or empty tag lists.
 - Empty filter arrays do not bypass SQL predicates; the UI defaults to selecting every available value.
 
 ## UX and iOS PWA requirements

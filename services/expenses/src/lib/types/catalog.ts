@@ -1,3 +1,5 @@
+export const NO_TAGS_FILTER = "__untagged__";
+
 export type Account = {
   id: number;
   name: string;

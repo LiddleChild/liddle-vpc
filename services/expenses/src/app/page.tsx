@@ -21,6 +21,7 @@ import type {
   CatalogChoice,
   MonthlyExpenseSummary,
 } from "@/lib/types/catalog";
+import { NO_TAGS_FILTER } from "@/lib/types/catalog";
 
 const formatMoney = (value: number) =>
   new Intl.NumberFormat("th-TH", {
@@ -31,8 +32,9 @@ const formatMoney = (value: number) =>
 const ACCOUNT_COLORS = ["#82a87d", "#c18a6b", "#8a9bc1", "#b692bd", "#c19d61"];
 
 const FILTER_STORAGE_KEY = "expenses:selected-filters";
+type CachedFilters = ExpenseFiltersValue & { noTagsOption?: true };
 
-const readCachedFilters = (): ExpenseFiltersValue | null => {
+const readCachedFilters = (): CachedFilters | null => {
   try {
     const cached = window.localStorage.getItem(FILTER_STORAGE_KEY);
     if (!cached) return null;
@@ -53,6 +55,7 @@ const readCachedFilters = (): ExpenseFiltersValue | null => {
     return {
       accounts: filters.accounts as number[],
       tags: filters.tags as string[],
+      ...(filters.noTagsOption === true ? { noTagsOption: true as const } : {}),
     };
   } catch {
     return null;
@@ -61,22 +64,25 @@ const readCachedFilters = (): ExpenseFiltersValue | null => {
 
 const writeCachedFilters = (filters: ExpenseFiltersValue) => {
   try {
-    window.localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(filters));
+    window.localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify({ ...filters, noTagsOption: true }));
   } catch {
     // Storage may be unavailable in private browsing or when quota is exceeded.
   }
 };
 
 const applyCatalogToCachedFilters = (
-  cached: ExpenseFiltersValue | null,
+  cached: CachedFilters | null,
   catalog: { accounts: Account[]; tags: CatalogChoice[] },
 ): ExpenseFiltersValue => ({
   accounts: cached
     ? cached.accounts.filter((id) => catalog.accounts.some((account) => account.id === id))
     : catalog.accounts.map(({ id }) => id),
   tags: cached
-    ? cached.tags.filter((value) => catalog.tags.some((tag) => tag.value === value))
-    : catalog.tags.map(({ value }) => value),
+    ? [
+        ...cached.tags.filter((value) => catalog.tags.some((tag) => tag.value === value)),
+        ...(cached.noTagsOption ? [] : [NO_TAGS_FILTER]),
+      ]
+    : [...catalog.tags.map(({ value }) => value), NO_TAGS_FILTER],
 });
 
 export default function Home() {
@@ -148,7 +154,10 @@ export default function Home() {
     listCatalog().then((catalog) => {
       if (!isMounted) return;
 
-      setTags(catalog.tags);
+      setTags([
+        ...catalog.tags,
+        { value: NO_TAGS_FILTER },
+      ]);
       setAccounts(catalog.accounts);
       setFilters(applyCatalogToCachedFilters(cachedFilters, catalog));
       hasLoadedCatalog.current = true;

@@ -16,6 +16,8 @@ type Repository struct {
 	gristClient gristapi.Client
 }
 
+const noTagsFilter = "__untagged__"
+
 func New(documentID string, gristClient gristapi.Client) Repository {
 	return Repository{
 		documentID:  documentID,
@@ -79,18 +81,35 @@ func (repo Repository) GetMonthlyExpenseSummary(ctx context.Context, filters mod
 	  and t."Bill_Cycle" < ?
 	  and t."Account" in (select value from json_each(?))
 	  and (
-	    t."Tags" is null
-	    or exists (
-	      select 1
-	      from json_each(t."Tags") transaction_tag
-	      join json_each(?) selected_tag
-	        on selected_tag.value = transaction_tag.value
+	    (? = 1 and (
+	      t."Tags" is null
+	      or not exists (select 1 from json_each(t."Tags"))
+	    ))
+	    or
+	    (
+	      t."Tags" is not null
+	      and
+	      exists (
+	        select 1
+	        from json_each(t."Tags") transaction_tag
+	        join json_each(?) selected_tag
+	          on selected_tag.value = transaction_tag.value
+	      )
 	    )
 	  )
 	group by t."Account"
 	`
 	accountsJSON, _ := json.Marshal(filters.Accounts)
-	tagsJSON, _ := json.Marshal(filters.Tags)
+	selectedTags := make([]string, 0, len(filters.Tags))
+	includeUntagged := 0
+	for _, tag := range filters.Tags {
+		if tag == noTagsFilter {
+			includeUntagged = 1
+			continue
+		}
+		selectedTags = append(selectedTags, tag)
+	}
+	tagsJSON, _ := json.Marshal(selectedTags)
 	response, err := repo.gristClient.QueryWithParams[monthlySummaryRecord](ctx, gristapi.QueryWithParamsRequest{
 		DocID: repo.documentID,
 		SQL:   query,
@@ -98,6 +117,7 @@ func (repo Repository) GetMonthlyExpenseSummary(ctx context.Context, filters mod
 			monthStart.Unix(),
 			monthStart.AddDate(0, 1, 0).Unix(),
 			string(accountsJSON),
+			includeUntagged,
 			string(tagsJSON),
 		},
 	})
