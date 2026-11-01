@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"time"
 
 	"github.com/LiddleChild/liddle-vpc/backend/internal/service"
 )
@@ -17,11 +18,12 @@ type ingestionItem struct {
 }
 
 type ingestionTransaction struct {
-	App      string `json:"app"`
-	Type     string `json:"type"`
-	Date     string `json:"date"`
-	Amount   string `json:"amount"`
-	Currency string `json:"currency"`
+	App       string    `json:"app"`
+	Type      string    `json:"type"`
+	Date      string    `json:"date"`
+	CreatedAt time.Time `json:"createdAt"`
+	Amount    string    `json:"amount"`
+	Currency  string    `json:"currency"`
 }
 
 func (dto ingestionRequest) toServiceRequest() (service.IngestionRequest, error) {
@@ -31,11 +33,12 @@ func (dto ingestionRequest) toServiceRequest() (service.IngestionRequest, error)
 			Version:      item.Version,
 			Notification: item.Notification.String(),
 			Transaction: service.IngestedTransaction{
-				App:      item.Transaction.App,
-				Type:     item.Transaction.Type,
-				Date:     item.Transaction.Date,
-				Amount:   item.Transaction.Amount,
-				Currency: item.Transaction.Currency,
+				App:       item.Transaction.App,
+				Type:      item.Transaction.Type,
+				Date:      item.Transaction.Date,
+				CreatedAt: item.Transaction.CreatedAt,
+				Amount:    item.Transaction.Amount,
+				Currency:  item.Transaction.Currency,
 			},
 		})
 	}

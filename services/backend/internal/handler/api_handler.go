@@ -30,18 +30,21 @@ func (h APIHandler) GetModelIngestionInstruction(w http.ResponseWriter, _ *http.
 func (h APIHandler) IngestTransaction(w http.ResponseWriter, r *http.Request) {
 	var request ingestionRequest
 	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+		slog.Error("invalid ingestion request", "error", err.Error())
 		writeError(w, http.StatusBadRequest, "invalid ingestion request")
 		return
 	}
 
 	serviceRequest, err := request.toServiceRequest()
 	if err != nil {
+		slog.Error("invalid ingestion request", "error", err.Error())
 		writeError(w, http.StatusBadRequest, "invalid ingestion request")
 		return
 	}
 
 	if err := h.ingestionSvc.IngestTransaction(r.Context(), serviceRequest); err != nil {
 		if errors.Is(err, service.ErrInvalidIngestionRequest) {
+			slog.Error("invalid ingestion request", "error", err.Error())
 			writeError(w, http.StatusBadRequest, "invalid ingestion request")
 			return
 		}

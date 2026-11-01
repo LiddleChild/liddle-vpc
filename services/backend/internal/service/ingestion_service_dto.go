@@ -1,5 +1,7 @@
 package service
 
+import "time"
+
 type IngestionRequest struct {
 	Transactions []IngestionItem
 }
@@ -11,9 +13,10 @@ type IngestionItem struct {
 }
 
 type IngestedTransaction struct {
-	App      string
-	Type     string
-	Date     string
-	Amount   string
-	Currency string
+	App       string
+	Type      string
+	Date      string
+	CreatedAt time.Time
+	Amount    string
+	Currency  string
 }

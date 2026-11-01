@@ -12,6 +12,7 @@ Maps given notifications into a list of dictionary which has the following shape
                 "app": "string",
                 "type": "string",
                 "date": "string",
+                "createdAt": "string",
                 "amount": string",
                 "currency": "string",
             }
@@ -32,6 +33,7 @@ Rules:
         - OUTFLOW usually contains "รายการเงินออก", "รายการโอน", "ถอน", "โอน"
         - UNKNOWN if it cannot be precisely decided
     - date is a string holding transaction date in YYYY-MM-DD format. prioritize date from notification content over date field.
+    - createdAt is a string holding notification timestamp in RFC3339 format
 - unescaped all backslash escaped characters to their original characters
 
 Data:
