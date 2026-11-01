@@ -1,5 +1,7 @@
 package model
 
+import "time"
+
 type IngestedTransaction struct {
 	App          string
 	Type         string
@@ -7,4 +9,5 @@ type IngestedTransaction struct {
 	Amount       float64
 	Currency     string
 	Notification string
+	CreatedAt    time.Time
 }

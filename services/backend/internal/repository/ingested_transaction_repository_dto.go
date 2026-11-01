@@ -7,4 +7,5 @@ type ingestedTransactionFields struct {
 	Amount       float64 `json:"amount"`
 	Currency     string  `json:"currency"`
 	Notification string  `json:"notification"`
+	CreatedAt    int64   `json:"created_at"`
 }

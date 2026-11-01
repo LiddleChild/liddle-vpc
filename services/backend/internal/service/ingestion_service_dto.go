@@ -14,6 +14,6 @@ type IngestedTransaction struct {
 	App      string
 	Type     string
 	Date     string
-	Amount   float64
+	Amount   string
 	Currency string
 }

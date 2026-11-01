@@ -17,11 +17,11 @@ type ingestionItem struct {
 }
 
 type ingestionTransaction struct {
-	App      string  `json:"app"`
-	Type     string  `json:"type"`
-	Date     string  `json:"date"`
-	Amount   float64 `json:"amount"`
-	Currency string  `json:"currency"`
+	App      string `json:"app"`
+	Type     string `json:"type"`
+	Date     string `json:"date"`
+	Amount   string `json:"amount"`
+	Currency string `json:"currency"`
 }
 
 func (dto ingestionRequest) toServiceRequest() (service.IngestionRequest, error) {

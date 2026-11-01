@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
+	"time"
 
 	"github.com/LiddleChild/liddle-vpc/backend/internal/model"
 	"github.com/LiddleChild/liddle-vpc/backend/internal/resources"
@@ -32,15 +34,22 @@ func (svc IngestionService) IngestTransaction(ctx context.Context, request Inges
 		return fmt.Errorf("%w: transactions must not be empty", ErrInvalidIngestionRequest)
 	}
 
+	now := time.Now()
 	records := make([]model.IngestedTransaction, 0, len(request.Transactions))
 	for _, item := range request.Transactions {
+		amount, err := strconv.ParseFloat(item.Transaction.Amount, 10)
+		if err != nil {
+			return err
+		}
+
 		records = append(records, model.IngestedTransaction{
 			App:          item.Transaction.App,
 			Type:         item.Transaction.Type,
 			Date:         item.Transaction.Date,
-			Amount:       item.Transaction.Amount,
+			Amount:       amount,
 			Currency:     item.Transaction.Currency,
 			Notification: item.Notification,
+			CreatedAt:    now,
 		})
 	}
 
