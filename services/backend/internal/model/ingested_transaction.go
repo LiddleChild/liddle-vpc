@@ -10,4 +10,5 @@ type IngestedTransaction struct {
 	Currency     string
 	Notification string
 	CreatedAt    time.Time
+	IngestedAt   time.Time
 }

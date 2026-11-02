@@ -33,6 +33,7 @@ func (repo IngestedTransactionRepository) CreateIngestedTransactions(ctx context
 				Currency:     transaction.Currency,
 				Notification: transaction.Notification,
 				CreatedAt:    transaction.CreatedAt.UTC().Unix(),
+				IngestedAt:   transaction.IngestedAt.UTC().Unix(),
 			},
 		})
 	}
