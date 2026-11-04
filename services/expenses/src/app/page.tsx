@@ -32,7 +32,7 @@ const formatMoney = (value: number) =>
 const ACCOUNT_COLORS = ["#82a87d", "#c18a6b", "#8a9bc1", "#b692bd", "#c19d61"];
 
 const FILTER_STORAGE_KEY = "expenses:selected-filters";
-type CachedFilters = ExpenseFiltersValue & { noTagsOption?: true };
+type CachedFilters = ExpenseFiltersValue;
 
 const readCachedFilters = (): CachedFilters | null => {
   try {
@@ -55,7 +55,6 @@ const readCachedFilters = (): CachedFilters | null => {
     return {
       accounts: filters.accounts as number[],
       tags: filters.tags as string[],
-      ...(filters.noTagsOption === true ? { noTagsOption: true as const } : {}),
     };
   } catch {
     return null;
@@ -64,7 +63,7 @@ const readCachedFilters = (): CachedFilters | null => {
 
 const writeCachedFilters = (filters: ExpenseFiltersValue) => {
   try {
-    window.localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify({ ...filters, noTagsOption: true }));
+    window.localStorage.setItem(FILTER_STORAGE_KEY, JSON.stringify(filters));
   } catch {
     // Storage may be unavailable in private browsing or when quota is exceeded.
   }
@@ -78,10 +77,10 @@ const applyCatalogToCachedFilters = (
     ? cached.accounts.filter((id) => catalog.accounts.some((account) => account.id === id))
     : catalog.accounts.map(({ id }) => id),
   tags: cached
-    ? [
-        ...cached.tags.filter((value) => catalog.tags.some((tag) => tag.value === value)),
-        ...(cached.noTagsOption ? [] : [NO_TAGS_FILTER]),
-      ]
+    ? cached.tags.filter(
+        (value) =>
+          value === NO_TAGS_FILTER || catalog.tags.some((tag) => tag.value === value),
+      )
     : [...catalog.tags.map(({ value }) => value), NO_TAGS_FILTER],
 });
 
