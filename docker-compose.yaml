@@ -95,22 +95,23 @@ configs:
                 }
               }
             }
-          },
-          "svc:api": {
-            "TCP": {
-              "443": {
-                "HTTPS": true
-              }
-            },
-            "Web": {
-              "api.tail30dd77.ts.net:443": {
-                "Handlers": {
-                  "/api": {
-                    "Proxy": "http://backend:8080/api"
-                  }
-                }
+          }
+        },
+        "TCP": {
+          "443": {
+            "HTTPS": true
+          }
+        },
+        "Web": {
+          "oci-liddle-vpc.tail30dd77.ts.net:443": {
+            "Handlers": {
+              "/api": {
+                "Proxy": "http://backend:8080/api"
               }
             }
           }
+        },
+        "AllowFunnel": {
+          "oci-liddle-vpc.tail30dd77.ts.net:443": true
         }
       }
