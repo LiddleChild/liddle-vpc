@@ -22,7 +22,7 @@ func NewAPIHandler(ingestionSvc service.IngestionService) APIHandler {
 func (h APIHandler) GetModelIngestionInstruction(w http.ResponseWriter, _ *http.Request) {
 	instruction := h.ingestionSvc.GetModelIngestionInstruction()
 
-	w.Header().Set("Content-Type", "text/plain")
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte(instruction))
 }
