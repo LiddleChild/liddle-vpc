@@ -20,6 +20,7 @@ import (
 	"github.com/caarlos0/env/v11"
 	"github.com/go-chi/chi/v5"
 	chimiddleware "github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/httprate"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -59,6 +60,10 @@ func run() error {
 	mux := chi.NewMux()
 	mux.Use(LoggerMiddleware)
 	mux.Use(chimiddleware.Recoverer)
+	mux.Use(chimiddleware.ClientIPFromRemoteAddr)
+	mux.Use(httprate.LimitBy(5, time.Second, func(r *http.Request) (string, error) {
+		return httprate.CanonicalizeIP(chimiddleware.GetClientIP(r.Context())), nil
+	}))
 
 	mux.Get("/expenses/v1/catalog", expenseHandler.GetExpenseCatalog)
 	mux.Get("/expenses/v1/monthly-summary", expenseHandler.GetMonthlyExpenseSummary)
