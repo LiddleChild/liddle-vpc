@@ -14,6 +14,7 @@ import (
 	"github.com/LiddleChild/liddle-vpc/backend/internal/frankfurterapi"
 	"github.com/LiddleChild/liddle-vpc/backend/internal/gristapi"
 	"github.com/LiddleChild/liddle-vpc/backend/internal/handler"
+	"github.com/LiddleChild/liddle-vpc/backend/internal/middleware"
 	"github.com/LiddleChild/liddle-vpc/backend/internal/repository"
 	"github.com/LiddleChild/liddle-vpc/backend/internal/scheduler"
 	"github.com/LiddleChild/liddle-vpc/backend/internal/service"
@@ -55,6 +56,8 @@ func run() error {
 		apiHandler     = handler.NewAPIHandler(ingestionSvc)
 
 		currencySyncTaskHandler = handler.NewCurrencySyncTaskHandler(currencySyncSvc)
+
+		apiKeyMiddleware = middleware.NewAPIKey(cfg.APIKey)
 	)
 
 	mux := chi.NewMux()
@@ -70,8 +73,12 @@ func run() error {
 
 	mux.Post("/tasks/v1/currency-sync", taskHandler.TriggerCurrencyTask)
 
-	mux.Get("/api/v1/ingestion/instruction", apiHandler.GetModelIngestionInstruction)
-	mux.Post("/api/v1/ingestion/transaction", apiHandler.IngestTransaction)
+	mux.Route("/api", func(r chi.Router) {
+		r.Use(apiKeyMiddleware.Handle)
+
+		r.Get("/v1/ingestion/instruction", apiHandler.GetModelIngestionInstruction)
+		r.Post("/v1/ingestion/transaction", apiHandler.IngestTransaction)
+	})
 
 	server := http.Server{
 		Addr:    fmt.Sprintf(":%d", cfg.Port),

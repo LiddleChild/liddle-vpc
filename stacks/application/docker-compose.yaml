@@ -18,6 +18,7 @@ services:
       BACKEND_CURRENCY_TABLE_ID: ${BACKEND_CURRENCY_TABLE_ID}
       BACKEND_INGESTED_TRANSACTIONS_TABLE_ID: ${BACKEND_INGESTED_TRANSACTIONS_TABLE_ID}
       FRANKFURTER_ENDPOINT: https://api.frankfurter.dev
+      API_KEY: ${BACKEND_API_KEY}
     deploy:
       resources:
         limits:

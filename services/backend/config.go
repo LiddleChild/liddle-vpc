@@ -15,4 +15,6 @@ type Config struct {
 
 	CurrencyTableID             string `env:"BACKEND_CURRENCY_TABLE_ID"`
 	IngestedTransactionsTableID string `env:"BACKEND_INGESTED_TRANSACTIONS_TABLE_ID"`
+
+	APIKey string `env:"API_KEY,notEmpty"`
 }
